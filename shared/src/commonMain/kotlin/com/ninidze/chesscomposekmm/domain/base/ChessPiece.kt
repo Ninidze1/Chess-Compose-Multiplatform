@@ -24,7 +24,7 @@ import com.ninidze.chesscomposekmm.util.extensions.isKingCheckedAfterMove
 abstract class ChessPiece(
     open val color: PieceColor,
     open val position: Position,
-    open val moveStrategy: MoveStrategy? = null
+    open val moveStrategy: MoveStrategy
 ) {
     abstract val type: PieceType
 
@@ -35,7 +35,8 @@ abstract class ChessPiece(
      * @param chessBoard The current state of the chessboard.
      * @return A list of positions to which the chess piece can potentially move.
      */
-    protected abstract fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position>
+    open fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> =
+        moveStrategy.getMoves(this, chessBoard)
 
 
     /**

@@ -13,10 +13,6 @@ class Bishop(
     override val color: PieceColor,
     override val position: Position,
     override val moveStrategy: MoveStrategy = DiagonalMoveStrategy()
-): ChessPiece(color, position, moveStrategy) {
+) : ChessPiece(color, position, moveStrategy) {
     override val type: PieceType = Bishop
-
-    override fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> {
-        return moveStrategy.getMoves(this, chessBoard)
-    }
 }

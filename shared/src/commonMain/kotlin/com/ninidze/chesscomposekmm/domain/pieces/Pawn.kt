@@ -13,14 +13,10 @@ class Pawn(
     color: PieceColor,
     position: Position,
     override val moveStrategy: PawnMoveStrategy = PawnMoveStrategy()
-) : ChessPiece(color, position) {
+) : ChessPiece(color, position, moveStrategy) {
 
     override val type: PieceType = Pawn
-
-    override fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> {
-        return moveStrategy.getMoves(this, chessBoard)
-    }
-
+    
     override fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> {
         val direction = if (color == White) -1 else 1
         return listOf(

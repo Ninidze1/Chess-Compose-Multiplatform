@@ -13,11 +13,8 @@ class Rook(
     color: PieceColor,
     position: Position,
     override val moveStrategy: MoveStrategy = LinearMoveStrategy()
-): ChessPiece(color, position) {
+) : ChessPiece(color, position, moveStrategy) {
 
     override val type: PieceType = Rook
 
-    override fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> {
-        return moveStrategy.getMoves(this, chessBoard)
-    }
 }

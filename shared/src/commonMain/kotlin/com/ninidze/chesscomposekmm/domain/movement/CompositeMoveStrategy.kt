@@ -13,7 +13,7 @@ import com.ninidze.chesscomposekmm.domain.model.Position
  *
  * @property strategies A list of MoveStrategies that this CompositeMoveStrategy is composed of.
  */
-class CompositeMoveStrategy(private val strategies: List<MoveStrategy>) : MoveStrategy {
+class CompositeMoveStrategy(private vararg val strategies: MoveStrategy) : MoveStrategy {
     override fun getMoves(piece: ChessPiece, chessBoard: ChessBoard): List<Position> {
         return strategies.flatMap { it.getMoves(piece, chessBoard) }
     }

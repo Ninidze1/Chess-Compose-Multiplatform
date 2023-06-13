@@ -5,6 +5,7 @@ import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByAlly
 import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByOpponent
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
+import com.ninidze.chesscomposekmm.domain.movement.CompositeMoveStrategy
 
 /**
  * An interface that defines a strategy for movement of a chess piece.
@@ -12,6 +13,10 @@ import com.ninidze.chesscomposekmm.domain.base.ChessPiece
  */
 interface MoveStrategy {
     fun getMoves(piece: ChessPiece, chessBoard: ChessBoard): List<Position>
+
+    operator fun plus(other: MoveStrategy): MoveStrategy {
+        return CompositeMoveStrategy(this, other)
+    }
 }
 
 /**

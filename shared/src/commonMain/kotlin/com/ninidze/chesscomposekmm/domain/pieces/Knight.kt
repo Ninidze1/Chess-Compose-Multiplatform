@@ -13,11 +13,7 @@ class Knight(
     color: PieceColor,
     position: Position,
     override val moveStrategy: MoveStrategy = KnightMoveStrategy()
-): ChessPiece(color, position) {
+) : ChessPiece(color, position, moveStrategy) {
 
     override val type: PieceType = Knight
-
-    override fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> {
-        return moveStrategy.getMoves(this, chessBoard)
-    }
 }

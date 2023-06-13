@@ -14,14 +14,9 @@ class King(
     color: PieceColor,
     position: Position,
     override val moveStrategy: KingMoveStrategy = KingMoveStrategy()
-) : ChessPiece(color, position) {
+) : ChessPiece(color, position, moveStrategy) {
 
     override val type: PieceType = King
-
-    override fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> {
-        return moveStrategy.getMoves(this, chessBoard)
-    }
-
     override fun isValidMove(chessBoard: ChessBoard, targetPosition: Position): Boolean {
         return super.isValidMove(chessBoard, targetPosition) &&
                 !chessBoard.isPositionUnderAttack(targetPosition, color.opposite())

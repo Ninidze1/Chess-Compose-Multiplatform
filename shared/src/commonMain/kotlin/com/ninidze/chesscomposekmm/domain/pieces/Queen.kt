@@ -14,17 +14,8 @@ import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 class Queen(
     color: PieceColor,
     position: Position,
-    override val moveStrategy: MoveStrategy = CompositeMoveStrategy(
-        listOf(
-            LinearMoveStrategy(),
-            DiagonalMoveStrategy()
-        )
-    )
-): ChessPiece(color, position) {
+    override val moveStrategy: MoveStrategy = LinearMoveStrategy() + DiagonalMoveStrategy()
+) : ChessPiece(color, position, moveStrategy) {
 
     override val type: PieceType = Queen
-
-    override fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> {
-        return moveStrategy.getMoves(this, chessBoard)
-    }
 }
