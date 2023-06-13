@@ -2,7 +2,7 @@
 
 # Chess
 
-This project is a digital implementation of the classic board game Chess. The project utilizes a clean architecture.
+This project is a digital implementation of the classic board game Chess. The project is built on top of the compose multiplatform.
 
 ## Contributing
 
