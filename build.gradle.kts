@@ -11,7 +11,6 @@ tasks.register("clean", Delete::class) {
 
 buildscript {
     dependencies {
-        // Use the same version in the error
         classpath("org.jetbrains.kotlinx:atomicfu-gradle-plugin:0.17.3")
     }
 }

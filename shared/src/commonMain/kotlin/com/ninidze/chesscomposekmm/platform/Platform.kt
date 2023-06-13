@@ -1,4 +1,4 @@
-package com.ninidze.chesscomposekmm
+package com.ninidze.chesscomposekmm.platform
 
 interface Platform {
     val name: String

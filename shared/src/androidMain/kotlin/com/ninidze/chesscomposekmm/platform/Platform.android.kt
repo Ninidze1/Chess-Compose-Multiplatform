@@ -1,4 +1,4 @@
-package com.ninidze.chesscomposekmm
+package com.ninidze.chesscomposekmm.platform
 
 class AndroidPlatform : Platform {
     override val name: String = "Android ${android.os.Build.VERSION.SDK_INT}"

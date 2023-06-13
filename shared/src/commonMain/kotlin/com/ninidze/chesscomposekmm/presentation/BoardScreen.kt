@@ -71,7 +71,6 @@ fun BoardScreen(
                                 }
                             )
 
-                            println(piece)
                             piece?.let {
                                 PieceView(
                                     piece = it,
