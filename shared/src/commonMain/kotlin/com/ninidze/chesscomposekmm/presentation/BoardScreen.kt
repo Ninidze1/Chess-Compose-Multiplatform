@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.Position
@@ -55,9 +56,10 @@ fun BoardScreen(
                                 .aspectRatio(1f),
                             contentAlignment = Alignment.Center
                         ) {
-                            chessBoardState.SelectPeace(
+                            SelectPiece(
                                 row = rowIndex,
                                 column = columnIndex,
+                                chessBoard = chessBoardState,
                                 selectedPiece = selectedPiece
                             )
 
@@ -98,31 +100,48 @@ fun BoardScreen(
 }
 
 @Composable
-private fun ChessBoard.SelectPeace(
+private fun SelectPiece(
     row: Int,
     column: Int,
+    chessBoard: ChessBoard,
     selectedPiece: ChessPiece?
-) {
+) = with(chessBoard) {
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val canBeCaptured = selectedPiece?.let {
-            (isOccupiedByOpponent(
-                position = Position(row, column),
-                color = it.color
-            ) && selectedPiece.getAvailableMoves(this@SelectPeace).contains(Position(row, column)))
-        }
-        val isCorrectTurn = playerTurn != selectedPiece?.color
-        val cellColor = when {
-            Position(
-                row = row,
-                column = column
-            ) == selectedPiece?.position || (canBeCaptured == true && !isCorrectTurn) -> ActiveCell
+        val currentPosition = Position(row, column)
+        val isPieceCapturable = isPieceCapturable(selectedPiece, currentPosition)
+        val isTurnIncorrect = playerTurn != selectedPiece?.color
 
-            (row % 2 == 0) == (column % 2 == 0) -> BoardWhite
-            else -> BoardBlack
-        }
+        val cellColor = determineCellColor(
+            selectedPiece = selectedPiece,
+            currentPosition = currentPosition,
+            isPieceCapturable = isPieceCapturable,
+            isTurnIncorrect = isTurnIncorrect
+        )
+
         drawRect(color = cellColor)
     }
+}
 
+private fun ChessBoard.isPieceCapturable(selectedPiece: ChessPiece?, position: Position) =
+    selectedPiece?.let { piece ->
+        isOccupiedByOpponent(position, piece.color) && piece.getAvailableMoves(this)
+            .contains(position)
+    } ?: false
+
+private fun determineCellColor(
+    selectedPiece: ChessPiece?,
+    currentPosition: Position,
+    isPieceCapturable: Boolean,
+    isTurnIncorrect: Boolean
+): Color {
+    val isSelectedOrCanBeCaptured =
+        currentPosition == selectedPiece?.position || (isPieceCapturable && !isTurnIncorrect)
+    val isCellWhite = (currentPosition.row % 2 == 0) == (currentPosition.column % 2 == 0)
+    return when {
+        isSelectedOrCanBeCaptured -> ActiveCell
+        isCellWhite -> BoardWhite
+        else -> BoardBlack
+    }
 }
 
 @Composable

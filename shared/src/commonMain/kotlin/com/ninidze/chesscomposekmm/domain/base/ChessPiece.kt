@@ -24,7 +24,7 @@ import com.ninidze.chesscomposekmm.util.extensions.isKingCheckedAfterMove
 abstract class ChessPiece(
     open val color: PieceColor,
     open val position: Position,
-    open val moveStrategy: MoveStrategy
+    private val moveStrategy: MoveStrategy
 ) {
     abstract val type: PieceType
 

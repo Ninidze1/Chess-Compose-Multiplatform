@@ -7,18 +7,24 @@ import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.PieceType.King
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.movement.KingMoveStrategy
+import com.ninidze.chesscomposekmm.util.extensions.isKingChecked
+import com.ninidze.chesscomposekmm.util.extensions.isOccupied
 import com.ninidze.chesscomposekmm.util.extensions.isPositionUnderAttack
 import com.ninidze.chesscomposekmm.util.extensions.opposite
 
 class King(
-    color: PieceColor,
-    position: Position,
-    override val moveStrategy: KingMoveStrategy = KingMoveStrategy()
-) : ChessPiece(color, position, moveStrategy) {
-
+    override val color: PieceColor,
+    override val position: Position,
+) : ChessPiece(color, position, KingMoveStrategy()) {
     override val type: PieceType = King
+
     override fun isValidMove(chessBoard: ChessBoard, targetPosition: Position): Boolean {
-        return super.isValidMove(chessBoard, targetPosition) &&
-                !chessBoard.isPositionUnderAttack(targetPosition, color.opposite())
+        val additionalConditions =
+            !chessBoard.isPositionUnderAttack(targetPosition, color.opposite())
+
+        return super.isValidMove(chessBoard, targetPosition) && additionalConditions
+
     }
 }
+
+

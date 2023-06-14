@@ -10,13 +10,14 @@ import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.movement.PawnMoveStrategy
 
 class Pawn(
-    color: PieceColor,
-    position: Position,
-    override val moveStrategy: PawnMoveStrategy = PawnMoveStrategy()
-) : ChessPiece(color, position, moveStrategy) {
-
+    override val color: PieceColor,
+    override val position: Position,
+) : ChessPiece(
+    color, position,
+    moveStrategy = PawnMoveStrategy()
+) {
     override val type: PieceType = Pawn
-    
+
     override fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> {
         val direction = if (color == White) -1 else 1
         return listOf(

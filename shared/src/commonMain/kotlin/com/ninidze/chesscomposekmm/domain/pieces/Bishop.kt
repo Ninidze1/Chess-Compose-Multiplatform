@@ -12,7 +12,9 @@ import com.ninidze.chesscomposekmm.domain.base.MoveStrategy
 class Bishop(
     override val color: PieceColor,
     override val position: Position,
-    override val moveStrategy: MoveStrategy = DiagonalMoveStrategy()
-) : ChessPiece(color, position, moveStrategy) {
+) : ChessPiece(
+    color, position,
+    moveStrategy = DiagonalMoveStrategy()
+) {
     override val type: PieceType = Bishop
 }
