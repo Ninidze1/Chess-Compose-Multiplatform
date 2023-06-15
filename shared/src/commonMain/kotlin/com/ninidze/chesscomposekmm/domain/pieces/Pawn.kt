@@ -25,4 +25,14 @@ class Pawn(
             Position(position.row + direction, position.column - 1)
         ).filter { it.isValidPosition() }
     }
+
+    override fun movePieceTo(targetPosition: Position): ChessPiece {
+        val pawnReachedEnd =
+            (color == White && targetPosition.row == 0) ||
+            (color == PieceColor.Black && targetPosition.row == 7)
+        if (pawnReachedEnd) {
+            return Queen(color, targetPosition)
+        }
+        return Pawn(color, targetPosition)
+    }
 }

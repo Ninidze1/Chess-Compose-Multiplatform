@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ninidze.chesscomposekmm.android.presentation.AndroidChessViewModel
 import com.ninidze.chesscomposekmm.presentation.BoardScreen
 import com.ninidze.chesscomposekmm.presentation.theme.BackgroundColor
 import org.koin.androidx.viewmodel.ext.android.viewModel

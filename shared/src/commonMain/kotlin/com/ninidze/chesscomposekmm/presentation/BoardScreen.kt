@@ -1,13 +1,19 @@
 package com.ninidze.chesscomposekmm.presentation
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.Position
@@ -27,7 +34,10 @@ import com.ninidze.chesscomposekmm.presentation.theme.BackgroundColor
 import com.ninidze.chesscomposekmm.presentation.theme.BoardBlack
 import com.ninidze.chesscomposekmm.presentation.theme.BoardWhite
 import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByOpponent
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.painterResource
 
+@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun BoardScreen(
     chessBoardState: ChessBoard,
@@ -43,10 +53,7 @@ fun BoardScreen(
 
         var selectedPiece by remember { mutableStateOf<ChessPiece?>(null) }
 
-        if (chessBoardState.winner != null) {
-            chessBoardEvents.invoke(OnGameRestart)
-        }
-        Column {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             chessBoardState.cells.forEachIndexed { rowIndex, row ->
                 Row {
                     row.forEachIndexed { columnIndex, piece ->
@@ -93,6 +100,25 @@ fun BoardScreen(
                             }
                         }
                     }
+                }
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            AnimatedVisibility(visible = chessBoardState.winner != null) {
+                Button(
+                    modifier = Modifier
+                        .height(75.dp)
+                        .aspectRatio(1f),
+                    onClick = {
+                        chessBoardEvents(OnGameRestart)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BoardWhite
+                    )
+                ) {
+                    Image(
+                        painter = painterResource(res = "drawables/ic_restart.xml"),
+                        contentDescription = "Restart"
+                    )
                 }
             }
         }

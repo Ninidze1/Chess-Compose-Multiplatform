@@ -6,7 +6,10 @@ import org.koin.mp.KoinPlatform.getKoin
 
 fun initKoin(){
     startKoin {
-        modules(viewModel, useCase)
+        modules(
+            viewModel, useCases,
+            platformUtil, chessEngineModule
+        )
     }
 }
 

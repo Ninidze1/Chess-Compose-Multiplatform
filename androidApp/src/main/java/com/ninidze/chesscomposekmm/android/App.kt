@@ -1,8 +1,10 @@
 package com.ninidze.chesscomposekmm.android
 
 import android.app.Application
-import com.ninidze.chesscomposekmm.android.di.useCases
 import com.ninidze.chesscomposekmm.android.di.viewModels
+import com.ninidze.chesscomposekmm.di.chessEngineModule
+import com.ninidze.chesscomposekmm.di.platformUtil
+import com.ninidze.chesscomposekmm.di.useCases
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -14,7 +16,10 @@ class App : Application() {
         startKoin {
             androidLogger()
             androidContext(this@App)
-            modules(viewModels, useCases)
+            modules(
+                viewModels, useCases,
+                platformUtil, chessEngineModule
+            )
         }
     }
 }

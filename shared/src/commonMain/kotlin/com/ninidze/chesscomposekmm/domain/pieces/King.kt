@@ -7,8 +7,6 @@ import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.PieceType.King
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.movement.KingMoveStrategy
-import com.ninidze.chesscomposekmm.util.extensions.isKingChecked
-import com.ninidze.chesscomposekmm.util.extensions.isOccupied
 import com.ninidze.chesscomposekmm.util.extensions.isPositionUnderAttack
 import com.ninidze.chesscomposekmm.util.extensions.opposite
 

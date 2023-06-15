@@ -18,6 +18,7 @@ pluginManagement {
         id("com.android.application").version(agpVersion)
         id("com.android.library").version(agpVersion)
         id("org.jetbrains.compose").version(composeVersion)
+        id("org.jetbrains.kotlin.jvm") version "1.8.20"
     }
 }
 
@@ -27,6 +28,15 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
+buildCache {
+    local {
+        isEnabled = true
+        directory = File(System.getProperty("user.home")).resolve(".gradle/caches/build-cache")
+        removeUnusedEntriesAfterDays = 10
+    }
+}
+
 rootProject.name = "ChessComposeKMM"
 include(":androidApp")
 include(":shared")

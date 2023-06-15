@@ -2,10 +2,9 @@ package com.ninidze.chesscomposekmm.domain.base
 
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.Position
+import com.ninidze.chesscomposekmm.domain.movement.CompositeMoveStrategy
 import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByAlly
 import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByOpponent
-import com.ninidze.chesscomposekmm.domain.base.ChessPiece
-import com.ninidze.chesscomposekmm.domain.movement.CompositeMoveStrategy
 
 /**
  * An interface that defines a strategy for movement of a chess piece.

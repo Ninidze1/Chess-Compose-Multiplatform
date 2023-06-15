@@ -10,8 +10,10 @@ import com.ninidze.chesscomposekmm.domain.pieces.Knight
 import com.ninidze.chesscomposekmm.domain.pieces.Pawn
 import com.ninidze.chesscomposekmm.domain.pieces.Queen
 import com.ninidze.chesscomposekmm.domain.pieces.Rook
+import com.ninidze.chesscomposekmm.util.Constants.UNKNOWN_CHESS_PIECE
 import com.ninidze.chesscomposekmm.util.extensions.isKingChecked
 import com.ninidze.chesscomposekmm.util.extensions.isKingCheckedAfterMove
+import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByAlly
 
 /**
  * An abstract representation of a chess piece. This class should be extended by specific types of chess pieces.
@@ -55,6 +57,9 @@ abstract class ChessPiece(
         if (chessBoard.getPieceAtPosition(targetPosition)?.type == PieceType.King) {
             return false
         }
+        if (chessBoard.isOccupiedByAlly(targetPosition, color)) {
+            return false
+        }
         if (chessBoard.isKingCheckedAfterMove(this, targetPosition)) {
             return false
         }
@@ -93,13 +98,13 @@ abstract class ChessPiece(
      * @return A new instance of the same type of chess piece but at the new position.
      * @throws RuntimeException If the type of the chess piece is unknown.
      */
-    fun movePieceTo(targetPosition: Position) = when (this) {
+    open fun movePieceTo(targetPosition: Position) = when (this) {
         is Pawn -> Pawn(color, targetPosition)
         is King -> King(color, targetPosition)
         is Knight -> Knight(color, targetPosition)
         is Rook -> Rook(color, targetPosition)
         is Bishop -> Bishop(color, targetPosition)
         is Queen -> Queen(color, targetPosition)
-        else -> error("Unknown chess piece type")
+        else -> error(UNKNOWN_CHESS_PIECE)
     }
 }
