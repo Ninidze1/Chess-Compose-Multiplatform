@@ -8,17 +8,9 @@ import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer
 import com.ninidze.chesscomposekmm.util.Constants.INVALID_MOVE_MESSAGE
 import com.ninidze.chesscomposekmm.util.extensions.movePiece
 
-class MovePieceUseCase {
-    operator fun invoke(
-        chessBoard: ChessBoard,
-        piece: ChessPiece,
-        targetPosition: Position
-    ): Result<ChessBoard> {
-        return if (piece.isValidMove(chessBoard, targetPosition)) {
-            val updatedChessBoard = chessBoard.movePiece(piece, targetPosition)
-            Result.success(updatedChessBoard)
-        } else {
-            Result.failure(IllegalStateException(INVALID_MOVE_MESSAGE))
-        }
+class StartGameUseCase(private val mediaPlayer: ChessMediaPlayer) {
+    operator fun invoke(): Result<ChessBoard> {
+        mediaPlayer.playSound(ActionType.START)
+        return Result.success(ChessBoard.createInitialChessBoard())
     }
 }

@@ -98,9 +98,11 @@ EOM
 }
 if [[ "$CONFIGURATION" == "Debug" ]]; then
   install_resource "${PODS_ROOT}/../../shared/src/commonMain/resources/drawables"
+  install_resource "${PODS_ROOT}/../../shared/src/iosMain/resources/raw"
 fi
 if [[ "$CONFIGURATION" == "Release" ]]; then
   install_resource "${PODS_ROOT}/../../shared/src/commonMain/resources/drawables"
+  install_resource "${PODS_ROOT}/../../shared/src/iosMain/resources/raw"
 fi
 
 mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"

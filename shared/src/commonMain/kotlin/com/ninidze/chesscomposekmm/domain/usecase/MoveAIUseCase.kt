@@ -3,13 +3,16 @@ package com.ninidze.chesscomposekmm.domain.usecase
 import com.ninidze.chesscomposekmm.domain.engine.Move
 import com.ninidze.chesscomposekmm.domain.engine.search.SearchEngine
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
+import com.ninidze.chesscomposekmm.domain.movement.ActionType
+import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer
 import com.ninidze.chesscomposekmm.util.Constants.INVALID_MOVE_MESSAGE
 import com.ninidze.chesscomposekmm.util.Constants.PIECE_NOT_FOUND
 import com.ninidze.chesscomposekmm.util.FenConverter
 import com.ninidze.chesscomposekmm.util.extensions.movePiece
 import com.ninidze.chesscomposekmm.util.extensions.toPosition
 
-class CalculateBotMoveUseCase(
+class MoveAIUseCase(
+    private val mediaPlayer: ChessMediaPlayer,
     private val chessBoardConverter: FenConverter,
     private val engine: SearchEngine
 ) {
@@ -20,6 +23,7 @@ class CalculateBotMoveUseCase(
         val targetPosition = calculatedMove.second
 
         return if (piece.isValidMove(chessBoard, targetPosition)) {
+            mediaPlayer.playSound(ActionType.MOVE)
             val updatedChessBoard = chessBoard.movePiece(piece, targetPosition)
             Result.success(updatedChessBoard)
         } else {

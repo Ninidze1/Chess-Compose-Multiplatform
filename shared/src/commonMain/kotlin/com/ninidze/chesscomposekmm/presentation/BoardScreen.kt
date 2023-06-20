@@ -1,5 +1,6 @@
 package com.ninidze.chesscomposekmm.presentation
 
+import androidx.compose.material3.Text
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -23,9 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.ninidze.chesscomposekmm.di.inject
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.Position
+import com.ninidze.chesscomposekmm.domain.movement.ActionType.FINISH
+import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.OnGameRestart
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.OnPieceMove
 import com.ninidze.chesscomposekmm.presentation.component.PieceView
@@ -87,8 +91,8 @@ fun BoardScreen(
                                         if (selectedPiece != null && it.color != selectedPiece?.color) {
                                             chessBoardEvents(
                                                 OnPieceMove(
-                                                    selectedPiece!!,
-                                                    it.position
+                                                    piece = selectedPiece!!,
+                                                    position = it.position
                                                 )
                                             )
                                             selectedPiece = null
@@ -108,12 +112,12 @@ fun BoardScreen(
                     modifier = Modifier
                         .height(75.dp)
                         .aspectRatio(1f),
-                    onClick = {
-                        chessBoardEvents(OnGameRestart)
-                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = BoardWhite
-                    )
+                    ),
+                    onClick = {
+                        chessBoardEvents(OnGameRestart)
+                    }
                 ) {
                     Image(
                         painter = painterResource(res = "drawables/ic_restart.xml"),

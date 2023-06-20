@@ -12,7 +12,3 @@ fun initKoin(){
         )
     }
 }
-
-inline fun <reified T : CommonViewModel> inject(): Lazy<T> {
-    return lazy { getKoin().get(T::class) }
-}

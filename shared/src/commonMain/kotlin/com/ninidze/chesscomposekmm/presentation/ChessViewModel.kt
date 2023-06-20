@@ -5,10 +5,11 @@ import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.PieceColor.Black
 import com.ninidze.chesscomposekmm.domain.model.PieceColor.White
 import com.ninidze.chesscomposekmm.domain.model.Position
-import com.ninidze.chesscomposekmm.domain.usecase.CalculateBotMoveUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.CheckGameEndUseCase
+import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
-import com.ninidze.chesscomposekmm.util.Constants.INVALID_MOVE_MESSAGE
+import com.ninidze.chesscomposekmm.domain.usecase.StartGameUseCase
+import com.ninidze.chesscomposekmm.util.Constants.FAILED_TO_START_GAME
 import com.ninidze.chesscomposekmm.util.extensions.opposite
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,19 +29,23 @@ interface CommonViewModel
 class ChessViewModel(
     private val movePieceUseCase: MovePieceUseCase,
     private val checkGameEndUseCase: CheckGameEndUseCase,
-    private val calculateBotMoveUseCase: CalculateBotMoveUseCase,
+    private val calculateBotMoveUseCase: MoveAIUseCase,
+    private val startGameUseCase: StartGameUseCase,
     coroutineScope: CoroutineScope? = null
 ) : CommonViewModel {
 
     private val viewModelScope = coroutineScope ?: CoroutineScope(Dispatchers.Main)
 
-    private val _chessBoardState = MutableStateFlow(ChessBoard.createInitialChessBoard())
+    private val _chessBoardState = MutableStateFlow(
+        startGameUseCase().getOrNull() ?: error(FAILED_TO_START_GAME)
+    )
     val chessBoardState: StateFlow<ChessBoard> = _chessBoardState
 
     fun onEvent(event: ChessBoardEvents) {
         when (event) {
             is ChessBoardEvents.OnGameRestart -> {
-                _chessBoardState.value = ChessBoard.createInitialChessBoard()
+                _chessBoardState.value = startGameUseCase()
+                    .getOrNull() ?: error(FAILED_TO_START_GAME)
             }
 
             is ChessBoardEvents.OnPieceMove -> {
@@ -52,28 +57,24 @@ class ChessViewModel(
     private fun moveAI() {
         viewModelScope.launch {
             val result = calculateBotMoveUseCase(_chessBoardState.value)
-            delay(0.5.seconds)
-            if (result.isSuccess) {
-                _chessBoardState.apply {
-                    value = result.getOrNull() ?: value
-                }
-                checkGameEnd()
-            } else {
-                println(INVALID_MOVE_MESSAGE)
+            delay(1.seconds)
+            if (result.isFailure) return@launch
+            _chessBoardState.apply {
+                value = result.getOrNull() ?: value
             }
+            checkGameEnd()
         }
     }
 
     private fun movePiece(piece: ChessPiece, targetPosition: Position) {
         viewModelScope.launch {
             val result = movePieceUseCase(_chessBoardState.value, piece, targetPosition)
-            if (result.isSuccess) {
-                _chessBoardState.apply { value = result.getOrNull() ?: value }
-                checkGameEnd()
-                moveAI()
-            } else {
-                println(INVALID_MOVE_MESSAGE)
+            if (result.isFailure) return@launch
+            _chessBoardState.apply {
+                value = result.getOrNull() ?: value
             }
+            checkGameEnd()
+            moveAI()
         }
     }
 
@@ -88,15 +89,17 @@ class ChessViewModel(
     }
 
     private fun checkGameEnd() {
-        val currentPlayerColor = _chessBoardState.value.playerTurn
-        val gameEnded = checkGameEndUseCase(_chessBoardState.value, currentPlayerColor)
-        if (gameEnded) {
-            _chessBoardState.apply {
-                value  = value.copy(winner = currentPlayerColor.opposite())
-            }
-        } else {
-            _chessBoardState.apply {
-                value = switchPlayerTurn(value)
+        viewModelScope.launch {
+            val currentPlayerColor = _chessBoardState.value.playerTurn
+            val gameEnded = checkGameEndUseCase(_chessBoardState.value, currentPlayerColor)
+            if (gameEnded) {
+                _chessBoardState.apply {
+                    value  = value.copy(winner = currentPlayerColor.opposite())
+                }
+            } else {
+                _chessBoardState.apply {
+                    value = switchPlayerTurn(value)
+                }
             }
         }
     }

@@ -1,6 +1,8 @@
 package com.ninidze.chesscomposekmm.presentation.component
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -36,7 +38,8 @@ fun PieceView(
         painter = painterResource(res = imageResId),
         contentDescription = "${piece.type} ${piece.color}",
         modifier = Modifier
-            .size(42.dp)
+            .fillMaxSize()
+            .padding(6.dp)
             .noRippleClickable { onPieceClick() }
     )
 }

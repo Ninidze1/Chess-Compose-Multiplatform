@@ -26,6 +26,7 @@
     }
   ],
   "resources": [
-    "src/commonMain/resources/**"
+    "src/commonMain/resources/**",
+    "src/iosMain/resources/**"
   ]
 }

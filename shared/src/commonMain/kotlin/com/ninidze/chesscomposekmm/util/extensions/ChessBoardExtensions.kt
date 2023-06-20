@@ -5,6 +5,8 @@ import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.PieceColor
 import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
+import com.ninidze.chesscomposekmm.util.Constants.KING_NOT_FOUND
+import com.ninidze.chesscomposekmm.util.Constants.PIECE_NOT_FOUND
 
 fun ChessBoard.isOccupied(position: Position): Boolean {
     return cells[position.row][position.column] != null
@@ -22,7 +24,7 @@ fun ChessBoard.isOccupiedByAlly(position: Position, color: PieceColor): Boolean 
 
 fun ChessBoard.movePiece(piece: ChessPiece, targetPosition: Position): ChessBoard {
     val currentPosition = findPiecePosition(piece)
-        ?: error("Piece not found on board")
+        ?: error(PIECE_NOT_FOUND)
 
     val updatedPiece = piece.movePieceTo(targetPosition)
 
@@ -81,6 +83,6 @@ fun ChessBoard.getKingsPosition(color: PieceColor): Position {
     val position = this.cells
         .flatten()
         .find { it?.type == PieceType.King && it.color == color }?.position
-    require(position != null) { "King of color $color not found on the board" }
+    require(position != null) { "$color $KING_NOT_FOUND" }
     return position
 }
