@@ -1,4 +1,4 @@
-![Cover](https://github.com/Ninidze1/ChessComposeKMM/assets/73029688/4a7db80f-71ce-450d-a7d9-50f87a6ec15e)
+![Cover](https://github.com/Ninidze1/Chess-Compose-Multiplatform/assets/73029688/7c60306d-64a4-4896-b116-8c8e98a30dab)
 
 # Chess
 
