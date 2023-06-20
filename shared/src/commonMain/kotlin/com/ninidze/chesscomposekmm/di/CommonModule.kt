@@ -2,8 +2,8 @@ package com.ninidze.chesscomposekmm.di
 
 import com.ninidze.chesscomposekmm.domain.engine.Config
 import com.ninidze.chesscomposekmm.domain.engine.search.SearchEngine
-import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.CheckGameEndUseCase
+import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.StartGameUseCase
 import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer

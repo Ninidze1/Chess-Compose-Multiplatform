@@ -3,8 +3,8 @@ package com.ninidze.chesscomposekmm.android.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
-import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.CheckGameEndUseCase
+import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.StartGameUseCase
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents
