@@ -13,12 +13,12 @@ import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 
 
-val platformUtil = module {
+val platformUtilModule = module {
     single { PlatformUtils() }
     single { ChessMediaPlayer() }
 }
 
-val useCases = module {
+val useCasesModule = module {
     single { StartGameUseCase(get()) }
     single { CheckGameEndUseCase(get()) }
     single { MovePieceUseCase() }

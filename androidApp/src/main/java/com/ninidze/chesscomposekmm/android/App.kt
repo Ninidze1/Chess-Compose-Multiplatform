@@ -1,10 +1,10 @@
 package com.ninidze.chesscomposekmm.android
 
 import android.app.Application
-import com.ninidze.chesscomposekmm.android.di.viewModels
+import com.ninidze.chesscomposekmm.android.di.viewModelsModule
 import com.ninidze.chesscomposekmm.di.chessEngineModule
-import com.ninidze.chesscomposekmm.di.platformUtil
-import com.ninidze.chesscomposekmm.di.useCases
+import com.ninidze.chesscomposekmm.di.platformUtilModule
+import com.ninidze.chesscomposekmm.di.useCasesModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -17,8 +17,8 @@ class App : Application() {
             androidLogger()
             androidContext(this@App)
             modules(
-                viewModels, useCases,
-                platformUtil, chessEngineModule
+                viewModelsModule, useCasesModule,
+                platformUtilModule, chessEngineModule
             )
         }
     }
