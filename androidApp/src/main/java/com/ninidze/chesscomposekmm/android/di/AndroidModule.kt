@@ -4,6 +4,6 @@ import com.ninidze.chesscomposekmm.android.presentation.AndroidChessViewModel
 import org.koin.androidx.viewmodel.dsl.viewModelOf
 import org.koin.dsl.module
 
-internal val viewModelsModule = module {
+internal val viewModelModule = module {
     viewModelOf(::AndroidChessViewModel)
 }

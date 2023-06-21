@@ -5,6 +5,6 @@ import org.koin.dsl.module
 
 internal val viewModel = module {
     single {
-        ChessViewModel(get(), get(), get(), get())
+        ChessViewModel(get(), get(), get(), get(), get(), get())
     }
 }

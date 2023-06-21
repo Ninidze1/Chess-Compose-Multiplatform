@@ -1,10 +1,9 @@
 package com.ninidze.chesscomposekmm.domain.usecase
 
+import com.ninidze.chesscomposekmm.data.helper.Resource
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.Position
-import com.ninidze.chesscomposekmm.domain.movement.ActionType
-import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer
 import com.ninidze.chesscomposekmm.util.Constants.INVALID_MOVE_MESSAGE
 import com.ninidze.chesscomposekmm.util.extensions.movePiece
 
@@ -13,12 +12,12 @@ class MovePieceUseCase {
         chessBoard: ChessBoard,
         piece: ChessPiece,
         targetPosition: Position
-    ): Result<ChessBoard> {
+    ): Resource<ChessBoard> {
         return if (piece.isValidMove(chessBoard, targetPosition)) {
             val updatedChessBoard = chessBoard.movePiece(piece, targetPosition)
-            Result.success(updatedChessBoard)
+            Resource.Success(updatedChessBoard)
         } else {
-            Result.failure(IllegalStateException(INVALID_MOVE_MESSAGE))
+            Resource.Failure(INVALID_MOVE_MESSAGE)
         }
     }
 }

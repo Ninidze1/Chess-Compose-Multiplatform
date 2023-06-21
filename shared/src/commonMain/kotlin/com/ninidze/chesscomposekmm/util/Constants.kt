@@ -7,5 +7,7 @@ object Constants {
     const val PIECE_NOT_FOUND = "Piece not found"
     const val UNKNOWN_CHESS_PIECE = "Unknown chess piece type"
     const val KING_NOT_FOUND = "King  not found on the board"
-    const val FAILED_TO_START_GAME = "Failed to start game"
+    const val ERROR_LOADING_BOARD = "Error loading board: "
+
+    const val CHESS_BOARD_KEY = "chess_board"
 }

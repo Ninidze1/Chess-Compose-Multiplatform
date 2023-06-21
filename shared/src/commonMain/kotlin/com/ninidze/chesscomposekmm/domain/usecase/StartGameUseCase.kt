@@ -9,8 +9,8 @@ import com.ninidze.chesscomposekmm.util.Constants.INVALID_MOVE_MESSAGE
 import com.ninidze.chesscomposekmm.util.extensions.movePiece
 
 class StartGameUseCase(private val mediaPlayer: ChessMediaPlayer) {
-    operator fun invoke(): Result<ChessBoard> {
+    operator fun invoke(): ChessBoard {
         mediaPlayer.playSound(ActionType.START)
-        return Result.success(ChessBoard.createInitialChessBoard())
+        return ChessBoard.createInitialChessBoard()
     }
 }

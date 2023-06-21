@@ -12,6 +12,7 @@ tasks.register("clean", Delete::class) {
 buildscript {
     dependencies {
         classpath("org.jetbrains.kotlinx:atomicfu-gradle-plugin:0.17.3")
+        classpath("org.jetbrains.kotlin:kotlin-serialization:1.8.20")
     }
 }
 
