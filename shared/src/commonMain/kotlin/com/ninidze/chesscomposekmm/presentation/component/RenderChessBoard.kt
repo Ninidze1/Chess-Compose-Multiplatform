@@ -50,6 +50,7 @@ fun RenderChessBoard(
                             PieceView(
                                 piece = currentPiece,
                                 onPieceClick = {
+                                    if (chessBoardState.winner != null) return@PieceView
                                     handlePieceClick(
                                         selectedPiece = selectedPiece,
                                         chessBoardState = chessBoardState,
