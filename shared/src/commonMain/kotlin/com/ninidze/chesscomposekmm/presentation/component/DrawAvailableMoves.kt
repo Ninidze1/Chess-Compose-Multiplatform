@@ -31,7 +31,7 @@ fun DrawAvailableMoves(
         ) {
             drawCircle(
                 color = ActiveCell,
-                radius = size.minDimension / 6,
+                radius = size.minDimension / 7,
                 center = center
             )
         }

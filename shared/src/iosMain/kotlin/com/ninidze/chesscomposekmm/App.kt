@@ -11,9 +11,11 @@ import com.ninidze.chesscomposekmm.presentation.theme.ChessAppTheme
 fun MainViewController() = ComposeUIViewController {
     val viewModel by inject<ChessViewModel>()
     val state by viewModel.chessBoardState.collectAsState()
+    val aiMoveSet by viewModel.aiMoveSet.collectAsState()
     ChessAppTheme {
         BoardScreen(
             chessBoardState = state,
+            aiMoveSet = aiMoveSet,
             chessBoardEvents = viewModel::onEvent
         )
     }

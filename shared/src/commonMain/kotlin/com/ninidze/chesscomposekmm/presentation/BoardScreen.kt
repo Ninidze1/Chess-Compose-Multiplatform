@@ -6,8 +6,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
+import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.OnGameRestart
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.OnPieceMove
 import com.ninidze.chesscomposekmm.presentation.component.RenderChessBoard
@@ -19,6 +19,7 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 @Composable
 fun BoardScreen(
     chessBoardState: ChessBoard,
+    aiMoveSet: Pair<Position, Position>?,
     chessBoardEvents: (ChessBoardEvents) -> Unit
 ) {
     Box(
@@ -27,19 +28,23 @@ fun BoardScreen(
             .background(color = BackgroundColor),
         contentAlignment = Alignment.Center
     ) {
-        val selectedPiece = remember { mutableStateOf<ChessPiece?>(null) }
-
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Render the chess board and its pieces
-            RenderChessBoard(chessBoardState, selectedPiece)
-            onPieceMove@ { piece, position ->
-                chessBoardEvents(OnPieceMove(piece, position))
-                selectedPiece.value = null
-            }
+            RenderChessBoard(
+                chessBoardState = chessBoardState,
+                aiMoveSet = aiMoveSet,
+                onAIMoveFinished = {
+                    chessBoardEvents(ChessBoardEvents.AiMoveFinished)
+                },
+                onPieceMove = { piece, position ->
+                    chessBoardEvents(
+                        OnPieceMove(piece, position)
+                    )
+                }
+            )
             Spacer(modifier = Modifier.height(24.dp))
 
             RestartButton(

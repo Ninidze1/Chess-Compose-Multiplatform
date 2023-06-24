@@ -27,9 +27,11 @@ class MainActivity : ComponentActivity() {
                     contentAlignment = Alignment.Center
                 ) {
                     val viewModel by viewModel<AndroidChessViewModel>()
-                    val state by viewModel.chessBoardState.collectAsStateWithLifecycle()
+                    val boardState by viewModel.chessBoardState.collectAsStateWithLifecycle()
+                    val aiMoveSet by viewModel.aiMoveSet.collectAsStateWithLifecycle()
                     BoardScreen(
-                        chessBoardState = state,
+                        chessBoardState = boardState,
+                        aiMoveSet = aiMoveSet,
                         chessBoardEvents = viewModel::onEvent
                     )
                 }

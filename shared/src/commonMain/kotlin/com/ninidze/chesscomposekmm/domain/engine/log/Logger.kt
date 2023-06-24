@@ -11,7 +11,7 @@ class Logger private constructor(private var prefix: String) {
     }
 
     companion object {
-        const val noLog = false
+        const val noLog = true
 
         fun getLogger(prefix: String): Logger {
             return Logger(prefix)

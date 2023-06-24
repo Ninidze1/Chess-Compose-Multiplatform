@@ -1,10 +1,22 @@
 package com.ninidze.chesscomposekmm.presentation.component
 
+import androidx.compose.animation.core.animateIntOffsetAsState
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.PieceColor.White
@@ -15,12 +27,14 @@ import com.ninidze.chesscomposekmm.domain.model.PieceType.Pawn
 import com.ninidze.chesscomposekmm.domain.model.PieceType.Queen
 import com.ninidze.chesscomposekmm.domain.model.PieceType.Rook
 import com.ninidze.chesscomposekmm.util.extensions.noRippleClickable
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun PieceView(
+    modifier: Modifier = Modifier,
     piece: ChessPiece,
     onPieceClick: () -> Unit
 ) {
@@ -36,8 +50,7 @@ fun PieceView(
     Image(
         painter = painterResource(res = imageResId),
         contentDescription = "${piece.type} ${piece.color}",
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .padding(6.dp)
             .noRippleClickable { onPieceClick() }
     )

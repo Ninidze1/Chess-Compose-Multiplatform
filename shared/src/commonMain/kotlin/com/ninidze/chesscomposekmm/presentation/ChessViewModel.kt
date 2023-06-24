@@ -13,6 +13,7 @@ import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.SaveBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.StartGameUseCase
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_LOADING_BOARD
+import com.ninidze.chesscomposekmm.util.extensions.movePiece
 import com.ninidze.chesscomposekmm.util.extensions.opposite
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,7 @@ import kotlin.time.Duration.Companion.seconds
 sealed class ChessBoardEvents {
     data class OnPieceMove(val piece: ChessPiece, val position: Position) : ChessBoardEvents()
     object OnGameRestart : ChessBoardEvents()
+    object AiMoveFinished : ChessBoardEvents()
 }
 
 class ChessViewModel(
@@ -43,6 +45,9 @@ class ChessViewModel(
     private val _chessBoardState = MutableStateFlow(startGameUseCase())
     val chessBoardState: StateFlow<ChessBoard> = _chessBoardState
 
+    private val _aiMoveSet = MutableStateFlow<Pair<Position, Position>?>(null)
+    val aiMoveSet: StateFlow<Pair<Position, Position>?> = _aiMoveSet
+
     init { loadBoard() }
 
     fun onEvent(event: ChessBoardEvents) {
@@ -54,6 +59,10 @@ class ChessViewModel(
 
             is ChessBoardEvents.OnPieceMove -> {
                 movePiece(event.piece, event.position)
+            }
+
+            is ChessBoardEvents.AiMoveFinished -> {
+                moveAI(_aiMoveSet.value ?: return)
             }
         }
     }
@@ -80,15 +89,27 @@ class ChessViewModel(
         }
     }
 
-    private fun moveAI() {
+    // After AI move is calculated, animation starts
+    private fun calculateAiMove() {
         viewModelScope.launch {
-            val result = calculateBotMoveUseCase(_chessBoardState.value)
+            val aiMove = calculateBotMoveUseCase(_chessBoardState.value)
+            val piece = _chessBoardState.value.getPieceAtPosition(aiMove.first)
+            val targetPosition = aiMove.second
+            if (piece == null) return@launch
+            if (!piece.isValidMove(_chessBoardState.value, targetPosition)) return@launch
+
             delay(1.seconds)
-            if (result is Resource.Success) {
-                _chessBoardState.apply { value = result.data }
-                checkGameEnd()
-            } else if (result is Resource.Failure) return@launch
+            _aiMoveSet.apply { value = aiMove }
         }
+    }
+
+    // After animation is finished, this function is called, and Board is updated
+    private fun moveAI(aiMoveSet: Pair<Position, Position>) {
+        val piece = _chessBoardState.value.getPieceAtPosition(aiMoveSet.first) ?: return
+        val targetPosition = aiMoveSet.second
+        val updatedChessBoard = _chessBoardState.value.movePiece(piece, targetPosition)
+        _chessBoardState.apply { value = updatedChessBoard }
+        checkGameEnd()
     }
 
     private fun movePiece(piece: ChessPiece, targetPosition: Position) {
@@ -97,7 +118,7 @@ class ChessViewModel(
             if (result is Resource.Success) {
                 _chessBoardState.apply { value = result.data }
                 checkGameEnd()
-                moveAI()
+                calculateAiMove()
             } else if (result is Resource.Failure) return@launch
         }
     }
