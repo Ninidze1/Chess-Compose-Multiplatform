@@ -23,6 +23,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.zIndex
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
+import com.ninidze.chesscomposekmm.domain.model.CastlingRights
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.PieceColor
 import com.ninidze.chesscomposekmm.domain.model.PieceType
@@ -40,6 +42,7 @@ import com.ninidze.chesscomposekmm.presentation.theme.LocalBoardColors
 import com.ninidze.chesscomposekmm.util.Constants.ANIMATION_DURATION_MS
 import com.ninidze.chesscomposekmm.util.Constants.BOARD_SIZE
 import com.ninidze.chesscomposekmm.util.extensions.toAlgebraic
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -53,6 +56,19 @@ private data class AnimatedMove(
     val to: Position,
     val promotion: PieceType?,
     val isAiMove: Boolean
+)
+
+/**
+ * What every affected piece does while a move animates.
+ *
+ * @property slides Start square to end square of each sliding piece: the mover, plus the
+ * rook when castling.
+ * @property captured The square of the piece that fades out: the target square for a normal
+ * capture, the square beside the pawn for en passant; null when nothing is captured.
+ */
+private data class MoveMotion(
+    val slides: Map<Position, Position>,
+    val captured: Position?
 )
 
 /**
@@ -113,6 +129,9 @@ fun RenderChessBoard(
 
     // 0 -> 1 progress of the active move; a fresh one starts at 0 for every move.
     val moveProgress = remember(activeMove) { Animatable(0f) }
+    val motion: MoveMotion? = remember(activeMove, chessBoardState) {
+        activeMove?.let { chessBoardState.motionOf(it) }
+    }
 
     // Runs once per move, outside composition, and reports it when the animation has ended.
     LaunchedEffect(activeMove) {
@@ -201,21 +220,26 @@ fun RenderChessBoard(
                     if (piece != null) {
                         val position = Position(row, column)
                         key(position) {
-                            val move = activeMove?.takeIf { it.from == position }
+                            val target = motion?.slides?.get(position)
+                            val isCaptured = position == motion?.captured
                             PieceView(
                                 modifier = Modifier
-                                    // The moving piece is drawn above all others, so a
+                                    // Moving pieces are drawn above all others, so a
                                     // capture never slides beneath the captured piece.
-                                    .zIndex(if (move != null) MOVING_PIECE_Z_INDEX else 0f)
+                                    .zIndex(if (target != null) MOVING_PIECE_Z_INDEX else 0f)
                                     .offset {
                                         val squarePx = squareSize.toPx()
-                                        val fraction = if (move != null) moveProgress.value else 0f
-                                        val rowDelta = move?.let { it.to.row - row } ?: 0
-                                        val columnDelta = move?.let { it.to.column - column } ?: 0
+                                        val fraction = if (target != null) moveProgress.value else 0f
+                                        val rowDelta = target?.let { it.row - row } ?: 0
+                                        val columnDelta = target?.let { it.column - column } ?: 0
                                         IntOffset(
                                             x = ((column + columnDelta * fraction) * squarePx).roundToInt(),
                                             y = ((row + rowDelta * fraction) * squarePx).roundToInt()
                                         )
+                                    }
+                                    // The captured piece fades out as the mover arrives.
+                                    .graphicsLayer {
+                                        alpha = if (isCaptured) 1f - moveProgress.value else 1f
                                     }
                                     .size(squareSize),
                                 piece = piece,
@@ -314,6 +338,39 @@ private fun squareDescription(
     if (isTarget) add(if (piece != null) Strings.POSSIBLE_CAPTURE else Strings.POSSIBLE_MOVE)
 }.joinToString(separator = ", ")
 
+/**
+ * Works out how [move] looks on this board: castling also slides the rook to the square the
+ * king passes over, and en passant fades out the pawn beside the capturing pawn.
+ */
+private fun ChessBoard.motionOf(move: AnimatedMove): MoveMotion? {
+    val piece = getPieceAtPosition(move.from) ?: return null
+    val slides = mutableMapOf(move.from to move.to)
+    val targetPiece = getPieceAtPosition(move.to)
+    var captured = move.to.takeIf { targetPiece != null && targetPiece.color != piece.color }
+    val columnDelta = move.to.column - move.from.column
+
+    when (piece.type) {
+        PieceType.King -> if (abs(columnDelta) == CASTLING_KING_STEP) {
+            val kingSide = columnDelta > 0
+            val rookColumn = if (kingSide) {
+                CastlingRights.KING_SIDE_ROOK_COLUMN
+            } else {
+                CastlingRights.QUEEN_SIDE_ROOK_COLUMN
+            }
+            val rookFrom = Position(move.from.row, rookColumn)
+            val rookTo = Position(move.from.row, move.from.column + if (kingSide) 1 else -1)
+            if (getPieceAtPosition(rookFrom)?.type == PieceType.Rook) {
+                slides[rookFrom] = rookTo
+            }
+        }
+        PieceType.Pawn -> if (columnDelta != 0 && targetPiece == null) {
+            captured = Position(move.from.row, move.to.column)
+        }
+        else -> Unit
+    }
+    return MoveMotion(slides = slides, captured = captured)
+}
+
 /** True if this is a pawn and [targetPosition] is on the last rank for its color. */
 private fun ChessPiece.isPromotingMove(targetPosition: Position): Boolean {
     val lastRow = if (color == PieceColor.White) 0 else BOARD_SIZE - 1
@@ -321,4 +378,5 @@ private fun ChessPiece.isPromotingMove(targetPosition: Position): Boolean {
 }
 
 private const val MOVING_PIECE_Z_INDEX = 1f
+private const val CASTLING_KING_STEP = 2
 private const val PROMOTION_PICKER_Z_INDEX = 2f
