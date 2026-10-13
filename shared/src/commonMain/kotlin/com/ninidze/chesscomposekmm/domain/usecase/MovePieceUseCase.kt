@@ -1,10 +1,10 @@
 package com.ninidze.chesscomposekmm.domain.usecase
 
-import com.ninidze.chesscomposekmm.data.helper.Resource
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
+import com.ninidze.chesscomposekmm.domain.result.Resource
 import com.ninidze.chesscomposekmm.util.Constants.GAME_ALREADY_FINISHED
 import com.ninidze.chesscomposekmm.util.Constants.INVALID_MOVE_MESSAGE
 import com.ninidze.chesscomposekmm.util.Constants.NOT_PLAYERS_TURN

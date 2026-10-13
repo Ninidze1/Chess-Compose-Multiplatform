@@ -1,12 +1,12 @@
 package com.ninidze.chesscomposekmm.presentation
 
-import com.ninidze.chesscomposekmm.data.helper.Resource
 import com.ninidze.chesscomposekmm.domain.model.AiMove
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.PieceColor
 import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
+import com.ninidze.chesscomposekmm.domain.result.Resource
 import com.ninidze.chesscomposekmm.domain.usecase.LoadBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
@@ -31,7 +31,6 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -95,10 +94,12 @@ class ChessViewModel(
         _uiState.update { it.copy(isLoading = true) }
         loadJob = viewModelScope.launch {
             val result = loadBoardUseCase()
-            // loadBoardUseCase swallows cancellation (safeCall), so check it here explicitly.
+            // The load can finish without reaching a cancellation point, so make sure this
+            // load was not superseded before applying its board.
             currentCoroutineContext().ensureActive()
+            // No saved game, an unreadable one, or a storage failure all start a new game.
             val board = when (result) {
-                is Resource.Success -> result.data.first()
+                is Resource.Success -> result.data ?: startGameUseCase()
                 is Resource.Failure -> {
                     println(ERROR_LOADING_BOARD + result.message)
                     startGameUseCase()
@@ -147,7 +148,7 @@ class ChessViewModel(
         val movedBoard = result.data
         val version = applyMove(movedBoard)
         saveBoard(movedBoard)
-        // saveBoard swallows cancellation (safeCall), so check it here explicitly.
+        // The save can finish without reaching a cancellation point, so check it here.
         currentCoroutineContext().ensureActive()
 
         if (movedBoard.isGameOver) return

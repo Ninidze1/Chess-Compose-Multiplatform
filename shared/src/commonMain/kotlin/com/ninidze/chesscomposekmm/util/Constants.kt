@@ -14,6 +14,8 @@ object Constants {
     const val KING_NOT_FOUND = "King  not found on the board"
     const val ERROR_LOADING_BOARD = "Error loading board: "
     const val ERROR_SAVING_BOARD = "Error saving board: "
+    const val ERROR_DECODING_BOARD = "Discarding unreadable saved board: "
+    const val INVALID_BOARD_SIZE = "the board is not 8x8"
     const val ERROR_CALCULATING_AI_MOVE = "Error calculating AI move: "
     const val AI_MOVE_REJECTED = "AI move rejected, using a fallback move instead of: "
     const val ENGINE_SEARCH_FAILED = "Engine search failed: "
