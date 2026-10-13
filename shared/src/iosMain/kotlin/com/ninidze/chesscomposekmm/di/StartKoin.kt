@@ -7,8 +7,8 @@ import org.koin.core.context.startKoin
 fun initKoin(){
     startKoin {
         modules(
-            viewModel, useCaseModule,
-            platformUtilModule, chessEngineModule,
+            chessViewModelModule, useCaseModule,
+            platformUtilModule, soundPlayerModule, chessEngineModule,
             localDataStoreModule, repositoryModule
         )
     }

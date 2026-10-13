@@ -7,26 +7,30 @@ import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import com.ninidze.chesscomposekmm.domain.result.Resource
+import com.ninidze.chesscomposekmm.domain.sound.SoundPlayer
 import com.ninidze.chesscomposekmm.domain.usecase.LoadBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.SaveBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.StartGameUseCase
-import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer
 import com.ninidze.chesscomposekmm.util.Constants.AI_ANIMATION_TIMEOUT_MS
 import com.ninidze.chesscomposekmm.util.Constants.AI_MOVE_DELAY_MS
 import com.ninidze.chesscomposekmm.util.Constants.AI_MOVE_REJECTED
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_CALCULATING_AI_MOVE
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_LOADING_BOARD
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_SAVING_BOARD
+import com.ninidze.chesscomposekmm.util.Constants.UNCAUGHT_VIEW_MODEL_ERROR
 import com.ninidze.chesscomposekmm.util.extensions.isEnPassantCapture
 import com.ninidze.chesscomposekmm.util.extensions.isKingChecked
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -47,15 +51,27 @@ sealed class ChessBoardEvents {
         val to: Position,
         val promotion: PieceType? = null
     ) : ChessBoardEvents()
-    object OnGameRestart : ChessBoardEvents()
+
+    // A plain object with the toString a data object would generate: `data object` needs
+    // Kotlin 1.9, and the project is on Kotlin 1.8.20.
+    object OnGameRestart : ChessBoardEvents() {
+        override fun toString(): String = "OnGameRestart"
+    }
 
     /** The UI finished animating the pending AI move [from] -> [to]. */
     data class AiMoveFinished(val from: Position, val to: Position) : ChessBoardEvents()
 }
 
+/**
+ * The board screen's state holder, shared by Android and iOS.
+ *
+ * @param coroutineScope The scope the ViewModel's work runs in (Android passes its
+ * `viewModelScope`). The ViewModel always works in a child of it, so [clear] cancels only
+ * its own work. When null, the ViewModel creates its own scope on the main thread.
+ */
 class ChessViewModel(
     private val movePieceUseCase: MovePieceUseCase,
-    private val mediaPlayer: ChessMediaPlayer,
+    private val soundPlayer: SoundPlayer,
     private val calculateBotMoveUseCase: MoveAIUseCase,
     private val startGameUseCase: StartGameUseCase,
     private val saveBoardUseCase: SaveBoardUseCase,
@@ -63,7 +79,17 @@ class ChessViewModel(
     coroutineScope: CoroutineScope? = null
 ) {
 
-    private val viewModelScope = coroutineScope ?: CoroutineScope(Dispatchers.Main)
+    // A failing coroutine is logged instead of crashing the app, and, thanks to the
+    // SupervisorJob, does not cancel the ViewModel's other work.
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        println(UNCAUGHT_VIEW_MODEL_ERROR + throwable.message)
+    }
+
+    private val viewModelScope: CoroutineScope = CoroutineScope(
+        (coroutineScope?.coroutineContext ?: Dispatchers.Main.immediate) +
+            SupervisorJob(parent = coroutineScope?.coroutineContext?.get(Job)) +
+            exceptionHandler
+    )
 
     // The placeholder board is shown (locked) until the saved game is loaded; it plays no sound.
     private val _uiState = MutableStateFlow(
@@ -97,6 +123,14 @@ class ChessViewModel(
         }
     }
 
+    /**
+     * Cancels all of the ViewModel's work (the load, the running turn and pending saves).
+     * The ViewModel must not be used afterwards.
+     */
+    fun clear() {
+        viewModelScope.cancel()
+    }
+
     private fun loadBoard() {
         loadJob?.cancel()
         cancelTurn()
@@ -108,10 +142,10 @@ class ChessViewModel(
             currentCoroutineContext().ensureActive()
             // No saved game, an unreadable one, or a storage failure all start a new game.
             val board = when (result) {
-                is Resource.Success -> result.data ?: startGameUseCase()
+                is Resource.Success -> result.data ?: startNewGame()
                 is Resource.Failure -> {
                     println(ERROR_LOADING_BOARD + result.message)
-                    startGameUseCase()
+                    startNewGame()
                 }
             }
             val version = replaceBoard(board, isLoading = false)
@@ -126,9 +160,15 @@ class ChessViewModel(
         // The load would overwrite the new game, and the board is locked until it finishes.
         if (_uiState.value.isLoading) return
         cancelTurn()
-        val initialBoard = startGameUseCase()
+        val initialBoard = startNewGame()
         replaceBoard(initialBoard)
         viewModelScope.launch { saveBoard(initialBoard) }
+    }
+
+    /** Creates the board for a new game and plays the start sound. */
+    private fun startNewGame(): ChessBoard {
+        soundPlayer.playSound(ActionType.START)
+        return startGameUseCase()
     }
 
     private fun onHumanMove(from: Position, to: Position, promotion: PieceType?) {
@@ -270,7 +310,7 @@ class ChessViewModel(
         updatedBoard: ChessBoard
     ): Long {
         val version = replaceBoard(updatedBoard)
-        mediaPlayer.playSound(moveSound(previousBoard, from, to, updatedBoard))
+        soundPlayer.playSound(moveSound(previousBoard, from, to, updatedBoard))
         return version
     }
 

@@ -20,6 +20,7 @@ object Constants {
     const val AI_MOVE_REJECTED = "AI move rejected, using a fallback move instead of: "
     const val ENGINE_SEARCH_FAILED = "Engine search failed: "
     const val ENGINE_NO_MOVE = "Engine returned no usable move: "
+    const val UNCAUGHT_VIEW_MODEL_ERROR = "Unexpected error in ChessViewModel: "
 
     const val CHESS_BOARD_KEY = "chess_board"
 }

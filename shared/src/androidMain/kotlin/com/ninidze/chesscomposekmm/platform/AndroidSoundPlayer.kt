@@ -5,17 +5,16 @@ import android.media.AudioAttributes
 import android.media.SoundPool
 import com.ninidze.chesscomposekmm.R
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import com.ninidze.chesscomposekmm.domain.sound.SoundPlayer
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Plays the game sounds through one [SoundPool]. Every clip is loaded once, when the player
  * is created, so playing a sound allocates nothing and never cuts off the previous one.
+ *
+ * @param context Used only to load the clips, through its application context; it is not kept.
  */
-actual class ChessMediaPlayer : KoinComponent {
-    private val context: Context by inject()
-
+class AndroidSoundPlayer(context: Context) : SoundPlayer {
     private val soundPool: SoundPool = SoundPool.Builder()
         .setMaxStreams(MAX_STREAMS)
         .setAudioAttributes(
@@ -42,7 +41,7 @@ actual class ChessMediaPlayer : KoinComponent {
         }
     }
 
-    actual fun playSound(actionType: ActionType) {
+    override fun playSound(actionType: ActionType) {
         val sampleId = sampleIds[actionType] ?: return
         // A sound requested before its clip has loaded is skipped rather than delayed.
         if (sampleId !in loadedSamples) return

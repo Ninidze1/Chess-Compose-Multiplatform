@@ -3,9 +3,11 @@ package com.ninidze.chesscomposekmm.android
 import android.app.Application
 import com.ninidze.chesscomposekmm.android.di.viewModelModule
 import com.ninidze.chesscomposekmm.di.chessEngineModule
+import com.ninidze.chesscomposekmm.di.chessViewModelModule
 import com.ninidze.chesscomposekmm.di.localDataStoreModule
 import com.ninidze.chesscomposekmm.di.platformUtilModule
 import com.ninidze.chesscomposekmm.di.repositoryModule
+import com.ninidze.chesscomposekmm.di.soundPlayerModule
 import com.ninidze.chesscomposekmm.di.useCaseModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -19,8 +21,8 @@ class App : Application() {
             androidLogger()
             androidContext(this@App)
             modules(
-                viewModelModule, useCaseModule,
-                platformUtilModule, chessEngineModule,
+                viewModelModule, chessViewModelModule, useCaseModule,
+                platformUtilModule, soundPlayerModule, chessEngineModule,
                 localDataStoreModule, repositoryModule
             )
         }

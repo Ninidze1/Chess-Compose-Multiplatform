@@ -3,18 +3,22 @@ package com.ninidze.chesscomposekmm
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.window.ComposeUIViewController
-import com.ninidze.chesscomposekmm.di.inject
 import com.ninidze.chesscomposekmm.presentation.BoardScreen
 import com.ninidze.chesscomposekmm.presentation.ChessViewModel
 import com.ninidze.chesscomposekmm.presentation.theme.ChessAppTheme
+import org.koin.mp.KoinPlatform
+
+// The iOS app is a single screen that lives as long as the process, so it keeps one
+// ChessViewModel (with its own scope) as an app-lifetime singleton, created on first use
+// after initKoin(); it is never cleared because nothing outlives it.
+private val chessViewModel: ChessViewModel by lazy { KoinPlatform.getKoin().get() }
 
 fun MainViewController() = ComposeUIViewController {
-    val viewModel by inject<ChessViewModel>()
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by chessViewModel.uiState.collectAsState()
     ChessAppTheme {
         BoardScreen(
             uiState = uiState,
-            chessBoardEvents = viewModel::onEvent
+            chessBoardEvents = chessViewModel::onEvent
         )
     }
 }

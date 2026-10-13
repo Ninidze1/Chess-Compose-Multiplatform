@@ -1,7 +1,7 @@
 package com.ninidze.chesscomposekmm.platform
 
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
-import org.koin.core.component.KoinComponent
+import com.ninidze.chesscomposekmm.domain.sound.SoundPlayer
 import platform.AVFAudio.AVAudioPlayer
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryAmbient
@@ -15,7 +15,7 @@ import platform.Foundation.NSURL
  * The audio session uses the Ambient category, configured once: sounds respect the
  * silent switch and mix with other apps' audio instead of interrupting it.
  */
-actual class ChessMediaPlayer : KoinComponent {
+class IosSoundPlayer : SoundPlayer {
 
     private val players: Map<ActionType, AVAudioPlayer>
 
@@ -29,7 +29,7 @@ actual class ChessMediaPlayer : KoinComponent {
             .toMap()
     }
 
-    actual fun playSound(actionType: ActionType) {
+    override fun playSound(actionType: ActionType) {
         val player = players[actionType] ?: return
         // Restart the clip if it is still playing from the previous call.
         player.currentTime = 0.0
