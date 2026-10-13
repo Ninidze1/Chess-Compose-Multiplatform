@@ -15,8 +15,11 @@ import com.ninidze.chesscomposekmm.util.Constants.ENGINE_SEARCH_FAILED
 import com.ninidze.chesscomposekmm.util.FenConverter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -28,7 +31,7 @@ import kotlinx.coroutines.withContext
  * nor the search itself runs on the main thread. The engine is mutable shared state, so every
  * search holds [mutex].
  *
- * The search cannot be interrupted once started; it is bounded by [moveTimeMs].
+ * The search is bounded by [moveTimeMs], and cancelling the caller stops it early.
  *
  * @param engineFactory Creates the engine. Called on [dispatcher], at most once per engine
  * instance (again only after a failed search discarded the previous one).
@@ -49,12 +52,27 @@ class EngineChessAi(
         mutex.withLock {
             // Skip the search if the caller was cancelled while waiting for the lock.
             currentCoroutineContext().ensureActive()
-            search(board)
+            val searchEngine = engine ?: engineFactory().also { engine = it }
+            coroutineScope {
+                // The search blocks this thread, so a sibling waits for cancellation (restart,
+                // load) and stops the engine early instead of letting it use its full move time.
+                val stopOnCancel = launch {
+                    try {
+                        awaitCancellation()
+                    } finally {
+                        searchEngine.stop()
+                    }
+                }
+                try {
+                    search(searchEngine, board)
+                } finally {
+                    stopOnCancel.cancel()
+                }
+            }
         }
     }
 
-    private fun search(board: ChessBoard): AiMove? {
-        val searchEngine = engine ?: engineFactory().also { engine = it }
+    private fun search(searchEngine: SearchEngine, board: ChessBoard): AiMove? {
         val bestMove = try {
             searchEngine.board.fen = fenConverter.convertToFen(board)
             searchEngine.go(SearchParameters[moveTimeMs])

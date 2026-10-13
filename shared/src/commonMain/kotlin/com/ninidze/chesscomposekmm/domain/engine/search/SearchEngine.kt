@@ -11,6 +11,7 @@ import com.ninidze.chesscomposekmm.domain.engine.tt.TranspositionTable
 import com.ninidze.chesscomposekmm.platform.PlatformUtils
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlin.concurrent.Volatile
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.max
@@ -33,8 +34,10 @@ open class SearchEngine(private var config: Config) : KoinComponent {
     var isSearching = false
         protected set
 
-    // Think limits
+    // Think limits. stop and thinkToTime are also written by stop() from another thread.
+    @Volatile
     private var stop = false
+    @Volatile
     private var thinkToTime: Long = 0
     private var thinkToNodes = 0
     private var thinkToDepth = 0
@@ -949,6 +952,15 @@ open class SearchEngine(private var config: Config) : KoinComponent {
     }
 
     open fun sleep(time: Long) {
+    }
+
+    /**
+     * Asks a running search to finish at its next node, keeping the best move found so far.
+     * Safe to call from another thread; the next go() resets the limits.
+     */
+    fun stop() {
+        stop = true
+        thinkToTime = 0
     }
 
     /**
