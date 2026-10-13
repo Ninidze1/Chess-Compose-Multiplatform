@@ -27,6 +27,24 @@ iOS: the `shared` framework is integrated as a local pod. The `Pods/` directory 
 open iosApp/iosApp.xcworkspace  # always open the workspace, not the project
 ```
 
+## Testing and lint
+
+The game rules, persistence and the ViewModel turn flow are covered by `shared/src/commonTest`, which runs on the JVM and on the iOS simulator:
+
+```sh
+./gradlew :shared:testDebugUnitTest      # JVM
+./gradlew :shared:iosSimulatorArm64Test  # iOS simulator, macOS only
+```
+
+Code style is checked with [ktlint](https://pinterest.github.io/ktlint/), configured in [`.editorconfig`](.editorconfig). The ported chess engine (`domain/engine`) is excluded.
+
+```sh
+./gradlew ktlintCheck    # report
+./gradlew ktlintFormat   # fix what can be fixed automatically
+```
+
+GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the tests and the Android debug build on every push to `main` and every pull request, plus ktlint as an advisory job.
+
 ## Contributing
 
 Contributions are welcome! If you have a feature you'd like to add, or you've found a bug and know how to fix it, please feel free to fork the repository and submit a pull request. For significant changes, please open an issue first to discuss your proposed changes. 

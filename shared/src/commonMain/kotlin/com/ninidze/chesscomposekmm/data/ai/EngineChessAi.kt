@@ -66,44 +66,47 @@ class EngineChessAi(
             println(ENGINE_SEARCH_FAILED + e.message)
             return null
         }
-        return bestMove.toAiMove().also {
+        return toAiMove(bestMove).also {
             if (it == null) println(ENGINE_NO_MOVE + Move.toString(bestMove))
         }
-    }
-
-    /** Converts an engine move to an [AiMove], or null for NONE / NULL / malformed moves. */
-    private fun Int.toAiMove(): AiMove? {
-        if (this == Move.NONE || this == Move.NULL_1) return null
-        val from = squareIndexToPosition(Move.getFromIndex(this)) ?: return null
-        val to = squareIndexToPosition(Move.getToIndex(this)) ?: return null
-        if (from == to) return null
-        val promotion = when (Move.getMoveType(this)) {
-            Move.TYPE_PROMOTION_QUEEN -> PieceType.Queen
-            Move.TYPE_PROMOTION_ROOK -> PieceType.Rook
-            Move.TYPE_PROMOTION_BISHOP -> PieceType.Bishop
-            Move.TYPE_PROMOTION_KNIGHT -> PieceType.Knight
-            else -> null
-        }
-        return AiMove(from = from, to = to, promotion = promotion)
-    }
-
-    /**
-     * Maps an engine square index to an app [Position] through its algebraic name, so the
-     * engine's internal index layout does not leak in here. Row 0 is rank 8.
-     */
-    private fun squareIndexToPosition(index: Int): Position? {
-        if (index !in 0 until SQUARE_COUNT) return null
-        val name = BitboardUtils.index2Algebraic(index)
-        if (name.length != 2) return null
-        val column = name[0].lowercaseChar() - 'a'
-        val rank = name[1] - '1'
-        if (column !in 0 until BOARD_SIZE || rank !in 0 until BOARD_SIZE) return null
-        return Position(row = BOARD_SIZE - 1 - rank, column = column)
-            .takeIf { it.isValidPosition() }
     }
 
     companion object {
         const val DEFAULT_MOVE_TIME_MS = 1000
         private const val SQUARE_COUNT = 64
+
+        /**
+         * Converts an engine move to an [AiMove], or null for NONE / NULL / malformed moves.
+         * Internal so the conversion can be unit-tested without running a search.
+         */
+        internal fun toAiMove(engineMove: Int): AiMove? {
+            if (engineMove == Move.NONE || engineMove == Move.NULL_1) return null
+            val from = squareIndexToPosition(Move.getFromIndex(engineMove)) ?: return null
+            val to = squareIndexToPosition(Move.getToIndex(engineMove)) ?: return null
+            if (from == to) return null
+            val promotion = when (Move.getMoveType(engineMove)) {
+                Move.TYPE_PROMOTION_QUEEN -> PieceType.Queen
+                Move.TYPE_PROMOTION_ROOK -> PieceType.Rook
+                Move.TYPE_PROMOTION_BISHOP -> PieceType.Bishop
+                Move.TYPE_PROMOTION_KNIGHT -> PieceType.Knight
+                else -> null
+            }
+            return AiMove(from = from, to = to, promotion = promotion)
+        }
+
+        /**
+         * Maps an engine square index to an app [Position] through its algebraic name, so the
+         * engine's internal index layout does not leak in here. Row 0 is rank 8.
+         */
+        private fun squareIndexToPosition(index: Int): Position? {
+            if (index !in 0 until SQUARE_COUNT) return null
+            val name = BitboardUtils.index2Algebraic(index)
+            if (name.length != 2) return null
+            val column = name[0].lowercaseChar() - 'a'
+            val rank = name[1] - '1'
+            if (column !in 0 until BOARD_SIZE || rank !in 0 until BOARD_SIZE) return null
+            return Position(row = BOARD_SIZE - 1 - rank, column = column)
+                .takeIf { it.isValidPosition() }
+        }
     }
 }

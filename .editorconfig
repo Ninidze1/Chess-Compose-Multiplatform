@@ -1,0 +1,32 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{yml,yaml,json,toml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{kt,kts}]
+# ktlint reads its settings from here; the Gradle plugin runs it (./gradlew ktlintCheck).
+ktlint_code_style = android_studio
+max_line_length = 120
+# The code base does not use trailing commas.
+ij_kotlin_allow_trailing_comma = false
+ij_kotlin_allow_trailing_comma_on_call_site = false
+# Composable functions are PascalCase by convention.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# Wildcard imports are never used; keep the IDE from introducing them.
+ij_kotlin_name_count_to_use_star_import = 2147483647
+ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
+
+# The ported third-party chess engine keeps its upstream formatting.
+[shared/src/commonMain/kotlin/com/ninidze/chesscomposekmm/domain/engine/**]
+ktlint_standard = disabled

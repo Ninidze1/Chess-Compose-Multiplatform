@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
+    alias(libs.plugins.ktlint)
 }
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -70,6 +71,8 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            // MapSettings, an in-memory Settings for the repository tests.
+            implementation(libs.multiplatform.settings.test)
         }
     }
 }
@@ -87,5 +90,15 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+ktlint {
+    version.set(libs.versions.ktlint.cli.get())
+    filter {
+        // The ported third-party engine keeps its upstream formatting.
+        exclude("**/domain/engine/**")
+        // Generated sources, such as the Compose resource accessors.
+        exclude { element -> element.file.invariantSeparatorsPath.contains("/build/") }
     }
 }

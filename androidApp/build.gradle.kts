@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.ktlint)
 }
 
 android {
@@ -58,4 +59,11 @@ dependencies {
     implementation(libs.koin.core.viewmodel)
 
     debugImplementation(libs.compose.ui.tooling)
+}
+
+ktlint {
+    version.set(libs.versions.ktlint.cli.get())
+    filter {
+        exclude { element -> element.file.invariantSeparatorsPath.contains("/build/") }
+    }
 }
