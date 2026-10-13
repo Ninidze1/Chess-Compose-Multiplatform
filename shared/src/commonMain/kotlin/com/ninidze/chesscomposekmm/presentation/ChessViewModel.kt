@@ -19,6 +19,8 @@ import com.ninidze.chesscomposekmm.util.Constants.AI_MOVE_REJECTED
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_CALCULATING_AI_MOVE
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_LOADING_BOARD
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_SAVING_BOARD
+import com.ninidze.chesscomposekmm.util.extensions.isEnPassantCapture
+import com.ninidze.chesscomposekmm.util.extensions.isKingChecked
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -153,7 +155,7 @@ class ChessViewModel(
         val result = movePieceUseCase(board, piece, to, promotion ?: PieceType.Queen)
         if (result !is Resource.Success) return
         val movedBoard = result.data
-        val version = applyMove(movedBoard)
+        val version = applyMove(board, from, to, movedBoard)
         saveBoard(movedBoard)
         // The save can finish without reaching a cancellation point, so check it here.
         currentCoroutineContext().ensureActive()
@@ -241,7 +243,7 @@ class ChessViewModel(
             _uiState.update { it.copy(aiMove = null, isAiThinking = false) }
             return
         }
-        applyMove(result.data)
+        applyMove(board, aiMove.from, aiMove.to, result.data)
         saveBoard(result.data)
     }
 
@@ -256,13 +258,41 @@ class ChessViewModel(
     private fun isAiTurn(board: ChessBoard): Boolean =
         !board.isGameOver && board.playerTurn == AI_COLOR
 
-    // The domain move has already switched the turn and evaluated the game result
-    private fun applyMove(updatedBoard: ChessBoard): Long {
+    /**
+     * Makes [updatedBoard], the result of moving [from] -> [to] on [previousBoard], the current
+     * board and plays the sound for that move. The domain move has already switched the turn
+     * and evaluated the game result.
+     */
+    private fun applyMove(
+        previousBoard: ChessBoard,
+        from: Position,
+        to: Position,
+        updatedBoard: ChessBoard
+    ): Long {
         val version = replaceBoard(updatedBoard)
-        mediaPlayer.playSound(
-            if (updatedBoard.isGameOver) ActionType.FINISH else ActionType.MOVE
-        )
+        mediaPlayer.playSound(moveSound(previousBoard, from, to, updatedBoard))
         return version
+    }
+
+    /** The sound for a move: game end, then check, promotion, capture, or a plain move. */
+    private fun moveSound(
+        previousBoard: ChessBoard,
+        from: Position,
+        to: Position,
+        updatedBoard: ChessBoard
+    ): ActionType {
+        val movedPiece = previousBoard.getPieceAtPosition(from)
+        val isPromotion = movedPiece?.type == PieceType.Pawn &&
+            updatedBoard.getPieceAtPosition(to)?.type != PieceType.Pawn
+        val isCapture = previousBoard.getPieceAtPosition(to) != null ||
+            (movedPiece != null && previousBoard.isEnPassantCapture(movedPiece, to))
+        return when {
+            updatedBoard.isGameOver -> ActionType.FINISH
+            updatedBoard.isKingChecked(updatedBoard.playerTurn) -> ActionType.MOVE_CHECK
+            isPromotion -> ActionType.PROMOTION
+            isCapture -> ActionType.CAPTURE
+            else -> ActionType.MOVE
+        }
     }
 
     /**

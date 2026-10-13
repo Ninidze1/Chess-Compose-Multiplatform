@@ -2,41 +2,64 @@ package com.ninidze.chesscomposekmm.platform
 
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import org.koin.core.component.KoinComponent
+import platform.AVFAudio.AVAudioPlayer
 import platform.AVFAudio.AVAudioSession
-import platform.AVFAudio.AVAudioSessionCategoryPlayback
+import platform.AVFAudio.AVAudioSessionCategoryAmbient
 import platform.AVFAudio.setActive
-import platform.AVFoundation.AVPlayer
-import platform.AVFoundation.pause
-import platform.AVFoundation.play
 import platform.Foundation.NSBundle
 import platform.Foundation.NSURL
 
+/**
+ * Plays the game sounds with one preloaded [AVAudioPlayer] per clip.
+ *
+ * The audio session uses the Ambient category, configured once: sounds respect the
+ * silent switch and mix with other apps' audio instead of interrupting it.
+ */
 actual class ChessMediaPlayer : KoinComponent {
-    private var audioPlayer: AVPlayer? = null
+
+    private val players: Map<ActionType, AVAudioPlayer>
+
+    init {
+        val audioSession = AVAudioSession.sharedInstance()
+        audioSession.setCategory(AVAudioSessionCategoryAmbient, error = null)
+        audioSession.setActive(true, error = null)
+
+        players = ActionType.values()
+            .mapNotNull { actionType -> loadPlayer(actionType)?.let { actionType to it } }
+            .toMap()
+    }
 
     actual fun playSound(actionType: ActionType) {
-        val soundFileName = when (actionType) {
-            ActionType.MOVE -> "move_self"
-            ActionType.CAPTURE -> "capture"
-            ActionType.FINISH -> "game_end"
-            ActionType.MOVE_CHECK -> "move_check"
-            ActionType.PROMOTION -> "promote"
-            ActionType.START -> "notify"
-        }
+        val player = players[actionType] ?: return
+        // Restart the clip if it is still playing from the previous call.
+        player.currentTime = 0.0
+        player.play()
+    }
 
-        val soundFilePath = NSBundle.mainBundle.pathForResource("raw/$soundFileName", ofType = "mp3")
-        soundFilePath?.let {
-            val soundFileUrl = NSURL.fileURLWithPath(it)
+    private fun loadPlayer(actionType: ActionType): AVAudioPlayer? {
+        // The pod copies the iosMain/resources/raw folder into the main bundle as "raw".
+        val path = NSBundle.mainBundle.pathForResource(
+            actionType.soundFileName(),
+            ofType = SOUND_FILE_TYPE,
+            inDirectory = SOUND_DIRECTORY
+        ) ?: return null
+        val player = AVAudioPlayer(contentsOfURL = NSURL.fileURLWithPath(path), error = null)
+        player.prepareToPlay()
+        return player
+    }
 
-            val audioSession = AVAudioSession.sharedInstance()
-            audioSession.setCategory(AVAudioSessionCategoryPlayback, error = null)
-            audioSession.setActive(true, error = null)
+    // Must match the file names in iosMain/resources/raw (and androidMain/res/raw).
+    private fun ActionType.soundFileName(): String = when (this) {
+        ActionType.MOVE -> "move_self"
+        ActionType.CAPTURE -> "capture"
+        ActionType.FINISH -> "game_end"
+        ActionType.MOVE_CHECK -> "move_check"
+        ActionType.PROMOTION -> "promote"
+        ActionType.START -> "notify"
+    }
 
-            audioPlayer?.pause()
-            audioPlayer = AVPlayer.playerWithURL(soundFileUrl)
-            audioPlayer?.play()
-        }
+    private companion object {
+        const val SOUND_DIRECTORY = "raw"
+        const val SOUND_FILE_TYPE = "mp3"
     }
 }
-
-

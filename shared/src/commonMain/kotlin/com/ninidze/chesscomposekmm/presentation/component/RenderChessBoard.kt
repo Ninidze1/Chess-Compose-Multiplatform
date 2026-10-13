@@ -1,46 +1,67 @@
 package com.ninidze.chesscomposekmm.presentation.component
 
-import androidx.compose.animation.core.animateIntOffsetAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.min
 import androidx.compose.ui.zIndex
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.PieceColor
 import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
-import com.ninidze.chesscomposekmm.presentation.theme.ActiveCell
-import com.ninidze.chesscomposekmm.presentation.theme.BoardBlack
-import com.ninidze.chesscomposekmm.presentation.theme.BoardWhite
+import com.ninidze.chesscomposekmm.presentation.Strings
+import com.ninidze.chesscomposekmm.presentation.theme.LocalBoardColors
 import com.ninidze.chesscomposekmm.util.Constants.ANIMATION_DURATION_MS
 import com.ninidze.chesscomposekmm.util.Constants.BOARD_SIZE
-import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByOpponent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.ninidze.chesscomposekmm.util.extensions.toAlgebraic
+import kotlin.math.roundToInt
 
 /**
- * Renders the board and reports moves by position.
+ * A move that is being animated on the board.
+ *
+ * @property promotion The piece a promoting pawn becomes; null for every other move.
+ * @property isAiMove True for the AI move published by the ViewModel, false for the user's own move.
+ */
+private data class AnimatedMove(
+    val from: Position,
+    val to: Position,
+    val promotion: PieceType?,
+    val isAiMove: Boolean
+)
+
+/**
+ * Renders the board as the largest square that fits the incoming constraints, and reports
+ * moves by position.
+ *
+ * Every square is one accessible button that selects a piece or moves the selected piece
+ * there. The pieces are drawn in a single layer above the squares, so the moving piece can
+ * be raised above all others.
  *
  * A pawn move onto the last rank first shows a [PromotionPicker]; the move is only animated
  * and reported once a piece is chosen, and dismissing the picker cancels it.
@@ -52,20 +73,17 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun RenderChessBoard(
+    modifier: Modifier = Modifier,
     chessBoardState: ChessBoard,
     aiMoveSet: Pair<Position, Position>?,
     isInputLocked: Boolean,
-    composableScope: CoroutineScope = rememberCoroutineScope(),
     onPieceMove: (Position, Position, PieceType?) -> Unit,
     onAIMoveFinished: (Position, Position) -> Unit
 ) {
-    var cellSize by remember { mutableStateOf(IntSize(0, 0)) }
-    // The selection is a square, resolved on the current board, and is dropped when the board changes.
+    // The selection, the user's move being animated and a pending promotion all belong to
+    // one board: they are dropped when the board changes.
     var selectedPosition by remember(chessBoardState) { mutableStateOf<Position?>(null) }
-    var pieceOffsets by remember { mutableStateOf<Map<ChessPiece, IntOffset>>(emptyMap()) }
-    // True while the user's own move is being animated, before it is sent to the ViewModel.
-    var isAnimatingMove by remember { mutableStateOf(false) }
-    // A promoting pawn move waiting for the user's choice; dropped when the board changes.
+    var userMove by remember(chessBoardState) { mutableStateOf<AnimatedMove?>(null) }
     var pendingPromotion by remember(chessBoardState) {
         mutableStateOf<Pair<ChessPiece, Position>?>(null)
     }
@@ -74,7 +92,12 @@ fun RenderChessBoard(
     val currentOnPieceMove by rememberUpdatedState(onPieceMove)
     val currentOnAIMoveFinished by rememberUpdatedState(onAIMoveFinished)
 
-    val isLocked = isInputLocked || isAnimatingMove || pendingPromotion != null
+    val aiMove = aiMoveSet?.let { (from, to) ->
+        AnimatedMove(from = from, to = to, promotion = null, isAiMove = true)
+    }
+    val activeMove = userMove ?: aiMove
+
+    val isLocked = isInputLocked || userMove != null || pendingPromotion != null
     val selectedPiece: ChessPiece? = if (isLocked) {
         null
     } else {
@@ -83,136 +106,213 @@ fun RenderChessBoard(
             ?.takeIf { it.color == chessBoardState.playerTurn }
     }
 
-    // Runs once per published AI move.
-    LaunchedEffect(aiMoveSet) {
-        val aiMove = aiMoveSet ?: return@LaunchedEffect
-        chessBoardState.getPieceAtPosition(aiMove.first)?.let { piece ->
-            pieceOffsets = pieceOffsets + (piece to piece.calculateMoveAnimation(
-                targetPosition = aiMove.second,
-                cellSize = cellSize
-            ))
-            delay(ANIMATION_DURATION_MS)
-        }
-        currentOnAIMoveFinished(aiMove.first, aiMove.second)
+    // Legal-move generation is expensive, so it runs once per board and selection.
+    val legalTargets: Set<Position> = remember(chessBoardState, selectedPiece?.position) {
+        selectedPiece?.getAvailableMoves(chessBoardState)?.toSet() ?: emptySet()
     }
 
-    val animateMove: (ChessPiece, Position, PieceType?) -> Unit =
-        animateMove@{ piece, targetPosition, promotion ->
-            if (isInputLocked || isAnimatingMove) return@animateMove
-            val boardAtStart = chessBoardState
-            val fromPosition = piece.position
-            isAnimatingMove = true
-            selectedPosition = null
-            pieceOffsets = pieceOffsets + (piece to piece.calculateMoveAnimation(
-                targetPosition = targetPosition,
-                cellSize = cellSize
-            ))
-            composableScope.launch {
-                try {
-                    delay(ANIMATION_DURATION_MS)
-                    // Drop the move if the board was replaced (restart, load) meanwhile.
-                    if (currentBoard === boardAtStart) {
-                        currentOnPieceMove(fromPosition, targetPosition, promotion)
-                    }
-                } finally {
-                    isAnimatingMove = false
+    // 0 -> 1 progress of the active move; a fresh one starts at 0 for every move.
+    val moveProgress = remember(activeMove) { Animatable(0f) }
+
+    // Runs once per move, outside composition, and reports it when the animation has ended.
+    LaunchedEffect(activeMove) {
+        val move = activeMove ?: return@LaunchedEffect
+        val boardAtStart = chessBoardState
+        val animationSpec = tween<Float>(durationMillis = ANIMATION_DURATION_MS.toInt())
+        if (move.isAiMove) {
+            if (boardAtStart.getPieceAtPosition(move.from) != null) {
+                moveProgress.animateTo(targetValue = 1f, animationSpec = animationSpec)
+            }
+            currentOnAIMoveFinished(move.from, move.to)
+        } else {
+            try {
+                moveProgress.animateTo(targetValue = 1f, animationSpec = animationSpec)
+            } finally {
+                // Also reached when the board leaves the composition mid-animation (for
+                // example when the Activity is recreated), so the move is not lost. It is
+                // only dropped when the board itself was replaced (restart, load).
+                if (currentBoard === boardAtStart) {
+                    currentOnPieceMove(move.from, move.to, move.promotion)
                 }
             }
+            // Unlocks the board if the ViewModel did not accept the move.
+            userMove = null
         }
+    }
 
-    val startMove: (ChessPiece, Position) -> Unit = startMove@{ piece, targetPosition ->
-        if (isInputLocked || isAnimatingMove || pendingPromotion != null) return@startMove
+    val startMove: (ChessPiece, Position) -> Unit = { piece, targetPosition ->
+        selectedPosition = null
         if (piece.isPromotingMove(targetPosition)) {
-            selectedPosition = null
             pendingPromotion = piece to targetPosition
         } else {
-            animateMove(piece, targetPosition, null)
+            userMove = AnimatedMove(
+                from = piece.position,
+                to = targetPosition,
+                promotion = null,
+                isAiMove = false
+            )
         }
     }
 
-    // Render Cells
-    Box {
-        Column {
-            chessBoardState.cells.forEachIndexed { rowIndex, row ->
-                Row {
-                    row.forEachIndexed { columnIndex, _ ->
-                        val currentPosition = Position(rowIndex, columnIndex)
-                        val cellColor = determineCellColor(
-                            selectedPiece, currentPosition, chessBoardState
-                        )
-                        Box(modifier = Modifier.weight(1f)
-                            .onSizeChanged { if (cellSize.width == 0) cellSize = it }
-                            .aspectRatio(1f).background(cellColor),
-                            contentAlignment = Alignment.Center) {
-                            DrawAvailableMoves(selectedPiece = selectedPiece,
-                                currentPosition = currentPosition,
-                                chessBoard = chessBoardState,
-                                onPieceMove = startMove)
+    val onSquareClick: (Position) -> Unit = onSquareClick@{ position ->
+        if (isLocked) return@onSquareClick
+        val piece = selectedPiece
+        if (piece != null && position in legalTargets) {
+            startMove(piece, position)
+            return@onSquareClick
+        }
+        selectedPosition = when {
+            // Tapping the selected piece again deselects it.
+            position == piece?.position -> null
+            chessBoardState.getPieceAtPosition(position)?.color == chessBoardState.playerTurn -> position
+            else -> null
+        }
+    }
+
+    BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val boardSize = min(maxWidth, maxHeight)
+        val squareSize = boardSize / BOARD_SIZE
+
+        Box(modifier = Modifier.size(boardSize)) {
+            // Squares: colors, move hints and all input.
+            Column(modifier = Modifier.fillMaxSize()) {
+                for (row in 0 until BOARD_SIZE) {
+                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        for (column in 0 until BOARD_SIZE) {
+                            val position = Position(row, column)
+                            BoardSquare(
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                position = position,
+                                piece = chessBoardState.getPieceAtPosition(position),
+                                isSelected = position == selectedPiece?.position,
+                                isTarget = position in legalTargets,
+                                isEnabled = !isLocked,
+                                onClick = { onSquareClick(position) }
+                            )
                         }
                     }
                 }
             }
-        }
 
-        // Render Pieces
-        Column {
-            chessBoardState.cells.forEachIndexed { _, row ->
-                Row {
-                    row.forEachIndexed { _, piece ->
-                        Box(
-                            modifier = Modifier.zIndex(2f).weight(1f).aspectRatio(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            piece?.let { currentPiece ->
-                                val targetPosition = pieceOffsets[currentPiece] ?: IntOffset(0, 0)
-                                val offsetState by animateIntOffsetAsState(
-                                    targetValue = targetPosition,
-                                    animationSpec = tween(durationMillis = ANIMATION_DURATION_MS.toInt())
-                                )
-                                PieceView(
-                                    modifier = Modifier
-                                        .offset { offsetState }
-                                        .fillMaxSize(),
-                                    piece = currentPiece,
-                                    onPieceClick = {
-                                        if (isInputLocked || isAnimatingMove || pendingPromotion != null) {
-                                            return@PieceView
-                                        }
-                                        handlePieceClick(
-                                            selectedPiece = selectedPiece,
-                                            chessBoardState = chessBoardState,
-                                            currentPiece = currentPiece,
-                                            onSelect = { selectedPosition = it },
-                                            onPieceMove = startMove
+            // Pieces: one layer, positioned from the current square size, so a resize never
+            // leaves them at stale offsets. They draw only; the squares below take the taps.
+            chessBoardState.cells.forEachIndexed { row, rowPieces ->
+                rowPieces.forEachIndexed { column, piece ->
+                    if (piece != null) {
+                        val position = Position(row, column)
+                        key(position) {
+                            val move = activeMove?.takeIf { it.from == position }
+                            PieceView(
+                                modifier = Modifier
+                                    // The moving piece is drawn above all others, so a
+                                    // capture never slides beneath the captured piece.
+                                    .zIndex(if (move != null) MOVING_PIECE_Z_INDEX else 0f)
+                                    .offset {
+                                        val squarePx = squareSize.toPx()
+                                        val fraction = if (move != null) moveProgress.value else 0f
+                                        val rowDelta = move?.let { it.to.row - row } ?: 0
+                                        val columnDelta = move?.let { it.to.column - column } ?: 0
+                                        IntOffset(
+                                            x = ((column + columnDelta * fraction) * squarePx).roundToInt(),
+                                            y = ((row + rowDelta * fraction) * squarePx).roundToInt()
                                         )
-                                    })
-                            }
+                                    }
+                                    .size(squareSize),
+                                piece = piece,
+                                // The square describes its piece.
+                                contentDescription = null
+                            )
                         }
                     }
                 }
             }
-        }
 
-        pendingPromotion?.let { (piece, targetPosition) ->
-            PromotionPicker(
-                modifier = Modifier.matchParentSize().zIndex(3f),
-                color = piece.color,
-                onSelect = { promotion ->
-                    pendingPromotion = null
-                    animateMove(piece, targetPosition, promotion)
-                },
-                onDismiss = { pendingPromotion = null }
-            )
+            pendingPromotion?.let { (piece, targetPosition) ->
+                PromotionPicker(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .zIndex(PROMOTION_PICKER_Z_INDEX),
+                    color = piece.color,
+                    onSelect = { promotion ->
+                        pendingPromotion = null
+                        userMove = AnimatedMove(
+                            from = piece.position,
+                            to = targetPosition,
+                            promotion = promotion,
+                            isAiMove = false
+                        )
+                    },
+                    onDismiss = { pendingPromotion = null }
+                )
+            }
         }
     }
 }
 
-private fun ChessPiece.calculateMoveAnimation(
-    targetPosition: Position, cellSize: IntSize
-) = IntOffset(
-    ((targetPosition.column - this.position.column) * cellSize.width),
-    ((targetPosition.row - this.position.row) * cellSize.height)
-)
+/**
+ * One square of the board: its color, a move hint and the input for that square. It is a
+ * single accessible button named after the square and the piece on it.
+ */
+@Composable
+private fun BoardSquare(
+    modifier: Modifier,
+    position: Position,
+    piece: ChessPiece?,
+    isSelected: Boolean,
+    isTarget: Boolean,
+    isEnabled: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = LocalBoardColors.current
+    val isLightSquare = (position.row + position.column) % 2 == 0
+    val isCapture = isTarget && piece != null
+    val description = squareDescription(position, piece, isSelected, isTarget)
+    val clickLabel = when {
+        isCapture -> Strings.CAPTURE
+        isTarget -> Strings.MOVE_HERE
+        piece != null -> Strings.SELECT_PIECE
+        else -> null
+    }
+    val highlight = if (isSelected || isCapture) {
+        Modifier.background(colors.highlight)
+    } else {
+        Modifier
+    }
+
+    Box(
+        modifier = modifier
+            .background(if (isLightSquare) colors.lightSquare else colors.darkSquare)
+            .then(highlight)
+            .semantics {
+                contentDescription = description
+                selected = isSelected
+            }
+            .clickable(
+                enabled = isEnabled,
+                onClickLabel = clickLabel,
+                role = Role.Button,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isTarget && piece == null) {
+            DrawAvailableMoves()
+        }
+    }
+}
+
+/** For example "e4, White knight, can be captured". */
+private fun squareDescription(
+    position: Position,
+    piece: ChessPiece?,
+    isSelected: Boolean,
+    isTarget: Boolean
+): String = buildList {
+    add(position.toAlgebraic())
+    add(piece?.let { Strings.pieceName(it.color, it.type) } ?: Strings.EMPTY_SQUARE)
+    if (isSelected) add(Strings.SELECTED)
+    if (isTarget) add(if (piece != null) Strings.POSSIBLE_CAPTURE else Strings.POSSIBLE_MOVE)
+}.joinToString(separator = ", ")
 
 /** True if this is a pawn and [targetPosition] is on the last rank for its color. */
 private fun ChessPiece.isPromotingMove(targetPosition: Position): Boolean {
@@ -220,42 +320,5 @@ private fun ChessPiece.isPromotingMove(targetPosition: Position): Boolean {
     return type == PieceType.Pawn && targetPosition.row == lastRow
 }
 
-private fun determineCellColor(
-    selectedPiece: ChessPiece?,
-    currentPosition: Position,
-    chessBoard: ChessBoard
-): Color = with(chessBoard) {
-    val isPieceCapturable = selectedPiece?.let { piece ->
-        isOccupiedByOpponent(currentPosition, piece.color) && piece.getAvailableMoves(this)
-            .contains(currentPosition)
-    } ?: false
-
-    val isTurnIncorrect = playerTurn != selectedPiece?.color
-    val isSelectedOrCanBeCaptured =
-        currentPosition == selectedPiece?.position || (isPieceCapturable && !isTurnIncorrect)
-    val isCellWhite = (currentPosition.row % 2 == 0) == (currentPosition.column % 2 == 0)
-
-    return when {
-        isSelectedOrCanBeCaptured -> ActiveCell
-        isCellWhite -> BoardWhite
-        else -> BoardBlack
-    }
-}
-
-private fun handlePieceClick(
-    selectedPiece: ChessPiece?,
-    chessBoardState: ChessBoard,
-    currentPiece: ChessPiece,
-    onSelect: (Position) -> Unit,
-    onPieceMove: (ChessPiece, Position) -> Unit
-) {
-    val isCapturable = selectedPiece?.let { piece ->
-        chessBoardState.isOccupiedByOpponent(currentPiece.position, piece.color) &&
-                piece.getAvailableMoves(chessBoardState).contains(currentPiece.position)
-    } ?: false
-    if (selectedPiece != null && isCapturable) {
-        onPieceMove(selectedPiece, currentPiece.position)
-    } else if (currentPiece.color == chessBoardState.playerTurn) {
-        onSelect(currentPiece.position)
-    }
-}
+private const val MOVING_PIECE_Z_INDEX = 1f
+private const val PROMOTION_PICKER_Z_INDEX = 2f

@@ -5,12 +5,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ninidze.chesscomposekmm.domain.model.DrawReason
 import com.ninidze.chesscomposekmm.domain.model.GameResult
+import com.ninidze.chesscomposekmm.presentation.Strings
 
 /** Describes a finished game; shows nothing while the game is ongoing. */
 @Composable
@@ -18,24 +20,16 @@ fun GameResultText(
     modifier: Modifier = Modifier,
     result: GameResult
 ) {
-    val text = result.describe() ?: return
+    val text = Strings.resultDescription(result) ?: return
     Text(
         text = text,
-        modifier = modifier.padding(horizontal = 16.dp),
+        modifier = modifier
+            .padding(horizontal = 16.dp)
+            // Announced by screen readers when the game ends.
+            .semantics { liveRegion = LiveRegionMode.Polite },
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.SemiBold,
-        color = Color.Black,
+        color = MaterialTheme.colorScheme.onBackground,
         textAlign = TextAlign.Center
     )
-}
-
-private fun GameResult.describe(): String? = when (this) {
-    is GameResult.Ongoing -> null
-    is GameResult.Checkmate -> "Checkmate: ${winner.name} wins"
-    is GameResult.Stalemate -> "Draw by stalemate"
-    is GameResult.Draw -> when (reason) {
-        DrawReason.InsufficientMaterial -> "Draw by insufficient material"
-        DrawReason.FiftyMoveRule -> "Draw by the 50-move rule"
-        DrawReason.ThreefoldRepetition -> "Draw by threefold repetition"
-    }
 }

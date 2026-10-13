@@ -1,22 +1,10 @@
 package com.ninidze.chesscomposekmm.presentation.component
 
-import androidx.compose.animation.core.animateIntOffsetAsState
-import androidx.compose.animation.core.animateOffsetAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.PieceColor.White
@@ -26,17 +14,25 @@ import com.ninidze.chesscomposekmm.domain.model.PieceType.Knight
 import com.ninidze.chesscomposekmm.domain.model.PieceType.Pawn
 import com.ninidze.chesscomposekmm.domain.model.PieceType.Queen
 import com.ninidze.chesscomposekmm.domain.model.PieceType.Rook
+import com.ninidze.chesscomposekmm.presentation.Strings
 import com.ninidze.chesscomposekmm.util.extensions.noRippleClickable
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
+/**
+ * Draws [piece]. With [onPieceClick] it is a button; without it, it only draws and lets
+ * taps reach whatever lies below (the board squares handle input themselves).
+ *
+ * @param contentDescription Read by accessibility services; null when an enclosing element
+ * already describes the piece.
+ */
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun PieceView(
     modifier: Modifier = Modifier,
     piece: ChessPiece,
-    onPieceClick: () -> Unit
+    contentDescription: String? = Strings.pieceName(piece.color, piece.type),
+    onPieceClick: (() -> Unit)? = null
 ) {
     val imageResId = when (piece.type) {
         King -> if (piece.color == White) "drawables/ic_king_white.xml" else "drawables/ic_king_black.xml"
@@ -47,11 +43,17 @@ fun PieceView(
         Pawn -> if (piece.color == White) "drawables/ic_pawn_white.xml" else "drawables/ic_pawn_black.xml"
     }
 
+    val clickModifier = if (onPieceClick != null) {
+        Modifier.noRippleClickable(role = Role.Button) { onPieceClick() }
+    } else {
+        Modifier
+    }
+
     Image(
         painter = painterResource(res = imageResId),
-        contentDescription = "${piece.type} ${piece.color}",
+        contentDescription = contentDescription,
         modifier = modifier
+            .then(clickModifier)
             .padding(6.dp)
-            .noRippleClickable { onPieceClick() }
     )
 }

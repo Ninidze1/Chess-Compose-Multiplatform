@@ -9,7 +9,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ninidze.chesscomposekmm.presentation.theme.BoardWhite
+import com.ninidze.chesscomposekmm.presentation.Strings
+import com.ninidze.chesscomposekmm.presentation.theme.LocalBoardColors
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
@@ -27,12 +28,12 @@ fun RestartButton(
                 .aspectRatio(1f),
             onClick = onRestartClick,
             colors = ButtonDefaults.buttonColors(
-                containerColor = BoardWhite
+                containerColor = LocalBoardColors.current.lightSquare
             )
         ) {
             Image(
                 painter = painterResource(res = "drawables/ic_restart.xml"),
-                contentDescription = "Restart"
+                contentDescription = Strings.RESTART
             )
         }
     }

@@ -19,7 +19,8 @@ import com.ninidze.chesscomposekmm.domain.pieces.Bishop
 import com.ninidze.chesscomposekmm.domain.pieces.Knight
 import com.ninidze.chesscomposekmm.domain.pieces.Queen
 import com.ninidze.chesscomposekmm.domain.pieces.Rook
-import com.ninidze.chesscomposekmm.presentation.theme.BoardWhite
+import com.ninidze.chesscomposekmm.presentation.Strings
+import com.ninidze.chesscomposekmm.presentation.theme.LocalBoardColors
 import com.ninidze.chesscomposekmm.util.extensions.noRippleClickable
 
 /**
@@ -50,7 +51,7 @@ fun PromotionPicker(
         Row(
             modifier = Modifier
                 .fillMaxWidth(PICKER_WIDTH_FRACTION)
-                .background(BoardWhite, RoundedCornerShape(12.dp))
+                .background(LocalBoardColors.current.lightSquare, RoundedCornerShape(12.dp))
                 // Taps between the choices must not dismiss the picker.
                 .noRippleClickable { }
                 .padding(8.dp)
@@ -61,6 +62,7 @@ fun PromotionPicker(
                         .weight(1f)
                         .aspectRatio(1f),
                     piece = choice,
+                    contentDescription = Strings.promoteTo(choice.type),
                     onPieceClick = { onSelect(choice.type) }
                 )
             }
