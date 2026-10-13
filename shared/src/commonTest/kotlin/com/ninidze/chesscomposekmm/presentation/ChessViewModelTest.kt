@@ -28,13 +28,13 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 
@@ -83,7 +83,7 @@ class ChessViewModelTest {
             assertTrue(isInputLocked)
         }
 
-        advanceUntilIdle()
+        settle()
 
         with(viewModel.uiState.value) {
             assertEquals(afterE4E5, board.toFen())
@@ -137,7 +137,7 @@ class ChessViewModelTest {
         assertEquals(afterE4, viewModel.uiState.value.board.toFen())
 
         searchMayFinish.complete(Unit)
-        advanceUntilIdle()
+        settle()
 
         assertEquals(afterE4E5, viewModel.uiState.value.board.toFen())
         assertEquals(1, ai.requests.size)
@@ -149,7 +149,7 @@ class ChessViewModelTest {
         val viewModel = viewModel(ai)
 
         viewModel.onEvent(ChessBoardEvents.OnPieceMove(sq("e7"), sq("e5")))
-        advanceUntilIdle()
+        settle()
 
         assertEquals(START_FEN, viewModel.uiState.value.board.toFen())
         assertTrue(ai.requests.isEmpty())
@@ -162,7 +162,7 @@ class ChessViewModelTest {
         val viewModel = viewModel(ai)
 
         viewModel.onEvent(ChessBoardEvents.OnPieceMove(sq("h5"), sq("f7")))
-        advanceUntilIdle()
+        settle()
 
         with(viewModel.uiState.value) {
             assertEquals(GameResult.Checkmate(winner = PieceColor.White), board.result)
@@ -181,7 +181,7 @@ class ChessViewModelTest {
         val ai = FakeChessAi { AiMove(from = sq("a7"), to = sq("a6")) }
         val viewModel = viewModel(ai)
 
-        advanceUntilIdle()
+        settle()
 
         assertTrue(viewModel.uiState.value.board.isGameOver)
         assertTrue(viewModel.uiState.value.isInputLocked)
@@ -196,7 +196,7 @@ class ChessViewModelTest {
         val viewModel = viewModel(ai)
 
         viewModel.onEvent(ChessBoardEvents.OnPieceMove(sq("a2"), sq("a3")))
-        advanceUntilIdle()
+        settle()
 
         assertEquals(foolsMate.toFen(), viewModel.uiState.value.board.toFen())
         assertTrue(ai.requests.isEmpty())
@@ -209,7 +209,7 @@ class ChessViewModelTest {
         val viewModel = viewModel(ai)
 
         assertTrue(viewModel.uiState.value.isInputLocked)
-        advanceUntilIdle()
+        settle()
 
         assertEquals(afterE4E5, viewModel.uiState.value.board.toFen())
         assertEquals(1, ai.requests.size)
@@ -222,7 +222,7 @@ class ChessViewModelTest {
         val viewModel = viewModel(ai)
 
         viewModel.onEvent(ChessBoardEvents.OnPieceMove(sq("e2"), sq("e4")))
-        advanceUntilIdle()
+        settle()
 
         with(viewModel.uiState.value.board) {
             assertEquals(PieceColor.White, playerTurn)
@@ -245,7 +245,7 @@ class ChessViewModelTest {
 
         viewModel.onEvent(ChessBoardEvents.OnGameRestart)
         searchMayFinish.complete(Unit)
-        advanceUntilIdle()
+        settle()
 
         assertRestarted(viewModel)
         assertEquals(1, ai.requests.size)
@@ -263,7 +263,7 @@ class ChessViewModelTest {
         viewModel.onEvent(ChessBoardEvents.OnGameRestart)
         // A late animation callback for the cancelled move must not apply it either.
         viewModel.onEvent(ChessBoardEvents.AiMoveFinished(blackE7E5.from, blackE7E5.to))
-        advanceUntilIdle()
+        settle()
 
         assertRestarted(viewModel)
         assertEquals(1, ai.requests.size)
@@ -276,7 +276,7 @@ class ChessViewModelTest {
 
         viewModel.onEvent(ChessBoardEvents.OnPieceMove(sq("e2"), sq("e4")))
         viewModel.onEvent(ChessBoardEvents.OnGameRestart)
-        advanceUntilIdle()
+        settle()
 
         assertRestarted(viewModel)
         assertTrue(ai.requests.isEmpty())
@@ -291,6 +291,15 @@ class ChessViewModelTest {
         }
         assertEquals(START_FEN, repository.savedBoard?.toFen())
         assertEquals(ActionType.START, sounds.played.last())
+    }
+
+    /**
+     * Runs everything the ViewModel has scheduled, including the AI delay and animation
+     * timeout. advanceUntilIdle() would not: it skips work in [TestScope.backgroundScope].
+     */
+    private fun TestScope.settle() {
+        advanceTimeBy(1.minutes)
+        runCurrent()
     }
 
     private fun viewModelTest(body: suspend TestScope.() -> Unit): TestResult =
