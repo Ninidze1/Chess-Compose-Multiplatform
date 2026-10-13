@@ -2,10 +2,10 @@
 # Toolchain
 agp = "8.13.2"
 kotlin = "2.4.20"
-compose-multiplatform = "1.12.1"
-# JetBrains publishes the multiplatform Material 3 on its own track; this is the build
-# paired with Compose Multiplatform 1.12.1 (it wraps the stable androidx Material 3).
-compose-material3 = "1.12.0-alpha03"
+compose-multiplatform = "1.11.1"
+# JetBrains publishes the multiplatform Material 3 on its own track. 1.9.0 is its latest
+# stable release; it wraps androidx Material 3 1.4.0, which works with AGP 8 and SDK 36.
+compose-material3 = "1.9.0"
 
 # Android SDK
 android-compileSdk = "36"

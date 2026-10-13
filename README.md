@@ -6,7 +6,7 @@ This project is a digital implementation of the classic board game Chess. The pr
 
 ## Building
 
-The toolchain is pinned in [`gradle/libs.versions.toml`](gradle/libs.versions.toml): Kotlin 2.4, Compose Multiplatform 1.12, AGP 8.13, Gradle 8.14 (through the wrapper), compileSdk/targetSdk 36 and minSdk 24.
+The toolchain is pinned in [`gradle/libs.versions.toml`](gradle/libs.versions.toml): Kotlin 2.4, Compose Multiplatform 1.11, AGP 8.13, Gradle 8.14.4 (through the wrapper), compileSdk/targetSdk 36 and minSdk 24.
 
 Requirements:
 
