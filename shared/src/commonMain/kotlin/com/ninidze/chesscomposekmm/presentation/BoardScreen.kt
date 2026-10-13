@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -26,7 +27,6 @@ import com.ninidze.chesscomposekmm.presentation.component.GameResultText
 import com.ninidze.chesscomposekmm.presentation.component.RenderChessBoard
 import com.ninidze.chesscomposekmm.presentation.component.RestartButton
 import com.ninidze.chesscomposekmm.presentation.component.WinningDialog
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /**
  * The game screen. The board is the largest square that fits next to the controls: below
@@ -45,7 +45,10 @@ fun BoardScreen(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = MaterialTheme.colorScheme.background),
+            .background(color = MaterialTheme.colorScheme.background)
+            // Both platforms draw edge to edge; keep the board and controls clear of the
+            // status bar, notch and navigation bar.
+            .safeDrawingPadding(),
         contentAlignment = Alignment.Center
     ) {
         if (maxWidth > maxHeight) {
@@ -123,7 +126,6 @@ private fun Board(
 }
 
 /** The result of a finished game and the restart button; empty while the game is ongoing. */
-@OptIn(ExperimentalResourceApi::class)
 @Composable
 private fun GameControls(
     isFinished: Boolean,

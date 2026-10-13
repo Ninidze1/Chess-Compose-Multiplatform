@@ -15,8 +15,20 @@ import com.ninidze.chesscomposekmm.domain.model.PieceType.Pawn
 import com.ninidze.chesscomposekmm.domain.model.PieceType.Queen
 import com.ninidze.chesscomposekmm.domain.model.PieceType.Rook
 import com.ninidze.chesscomposekmm.presentation.Strings
+import com.ninidze.chesscomposekmm.resources.Res
+import com.ninidze.chesscomposekmm.resources.ic_bishop_black
+import com.ninidze.chesscomposekmm.resources.ic_bishop_white
+import com.ninidze.chesscomposekmm.resources.ic_king_black
+import com.ninidze.chesscomposekmm.resources.ic_king_white
+import com.ninidze.chesscomposekmm.resources.ic_knight_black
+import com.ninidze.chesscomposekmm.resources.ic_knight_white
+import com.ninidze.chesscomposekmm.resources.ic_pawn_black
+import com.ninidze.chesscomposekmm.resources.ic_pawn_white
+import com.ninidze.chesscomposekmm.resources.ic_queen_black
+import com.ninidze.chesscomposekmm.resources.ic_queen_white
+import com.ninidze.chesscomposekmm.resources.ic_rook_black
+import com.ninidze.chesscomposekmm.resources.ic_rook_white
 import com.ninidze.chesscomposekmm.util.extensions.noRippleClickable
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -26,7 +38,6 @@ import org.jetbrains.compose.resources.painterResource
  * @param contentDescription Read by accessibility services; null when an enclosing element
  * already describes the piece.
  */
-@OptIn(ExperimentalResourceApi::class)
 @Composable
 fun PieceView(
     modifier: Modifier = Modifier,
@@ -34,13 +45,13 @@ fun PieceView(
     contentDescription: String? = Strings.pieceName(piece.color, piece.type),
     onPieceClick: (() -> Unit)? = null
 ) {
-    val imageResId = when (piece.type) {
-        King -> if (piece.color == White) "drawables/ic_king_white.xml" else "drawables/ic_king_black.xml"
-        Queen -> if (piece.color == White) "drawables/ic_queen_white.xml" else "drawables/ic_queen_black.xml"
-        Rook -> if (piece.color == White) "drawables/ic_rook_white.xml" else "drawables/ic_rook_black.xml"
-        Bishop -> if (piece.color == White) "drawables/ic_bishop_white.xml" else "drawables/ic_bishop_black.xml"
-        Knight -> if (piece.color == White) "drawables/ic_knight_white.xml" else "drawables/ic_knight_black.xml"
-        Pawn -> if (piece.color == White) "drawables/ic_pawn_white.xml" else "drawables/ic_pawn_black.xml"
+    val image = when (piece.type) {
+        King -> if (piece.color == White) Res.drawable.ic_king_white else Res.drawable.ic_king_black
+        Queen -> if (piece.color == White) Res.drawable.ic_queen_white else Res.drawable.ic_queen_black
+        Rook -> if (piece.color == White) Res.drawable.ic_rook_white else Res.drawable.ic_rook_black
+        Bishop -> if (piece.color == White) Res.drawable.ic_bishop_white else Res.drawable.ic_bishop_black
+        Knight -> if (piece.color == White) Res.drawable.ic_knight_white else Res.drawable.ic_knight_black
+        Pawn -> if (piece.color == White) Res.drawable.ic_pawn_white else Res.drawable.ic_pawn_black
     }
 
     val clickModifier = if (onPieceClick != null) {
@@ -50,7 +61,7 @@ fun PieceView(
     }
 
     Image(
-        painter = painterResource(res = imageResId),
+        painter = painterResource(image),
         contentDescription = contentDescription,
         modifier = modifier
             .then(clickModifier)

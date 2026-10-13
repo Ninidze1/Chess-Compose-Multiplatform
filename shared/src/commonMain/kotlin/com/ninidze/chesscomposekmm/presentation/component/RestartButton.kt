@@ -11,10 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ninidze.chesscomposekmm.presentation.Strings
 import com.ninidze.chesscomposekmm.presentation.theme.LocalBoardColors
-import org.jetbrains.compose.resources.ExperimentalResourceApi
+import com.ninidze.chesscomposekmm.resources.Res
+import com.ninidze.chesscomposekmm.resources.ic_restart
 import org.jetbrains.compose.resources.painterResource
 
-@ExperimentalResourceApi
 @Composable
 fun RestartButton(
     modifier: Modifier = Modifier,
@@ -32,7 +32,7 @@ fun RestartButton(
             )
         ) {
             Image(
-                painter = painterResource(res = "drawables/ic_restart.xml"),
+                painter = painterResource(Res.drawable.ic_restart),
                 contentDescription = Strings.RESTART
             )
         }

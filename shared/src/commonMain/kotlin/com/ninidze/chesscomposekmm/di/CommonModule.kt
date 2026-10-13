@@ -28,7 +28,6 @@ val platformUtilModule = module {
     singleOf(::PlatformUtils)
 }
 
-@Suppress("OPT_IN_USAGE")
 val repositoryModule = module {
      single<IChessGameRepository> { ChessGameRepository(get()) }
 }

@@ -1,29 +1,42 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    kotlin("multiplatform")
-    kotlin("native.cocoapods")
-    id("com.android.library")
-    id("org.jetbrains.compose")
-    kotlin("plugin.serialization")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.cocoapods)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.compose.multiplatform)
 }
 
-@OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    targetHierarchy.default()
-
-    android {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "1.8"
-            }
+    // The default hierarchy template (commonMain -> iosMain -> ios*Main) is applied
+    // automatically, so the source sets need no manual dependsOn wiring.
+    androidTarget {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
         }
     }
-    iosX64()
+    // Compose Multiplatform no longer publishes iosX64 (Intel simulator) artifacts, so only
+    // devices and Apple silicon simulators are targeted.
     iosArm64()
     iosSimulatorArm64()
 
+    compilerOptions {
+        // PlatformUtils is an expect/actual class, which Kotlin still ships as Beta.
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+        // FlowSettings and the DataStore/NSUserDefaults adapters are marked experimental
+        // by multiplatform-settings.
+        optIn.add("com.russhwolf.settings.ExperimentalSettingsApi")
+        optIn.add("com.russhwolf.settings.ExperimentalSettingsImplementation")
+    }
+
     cocoapods {
-        summary = "Some description for the Shared Module"
-        homepage = "Link to the Shared Module homepage"
+        summary = "Shared module of the Chess app: game rules, AI engine, persistence and the Compose UI"
+        homepage = "https://github.com/Ninidze1/Chess-Compose-Multiplatform"
+        authors = "Giorgi Ninidze"
         version = "1.0"
         ios.deploymentTarget = "14.1"
         podfile = project.file("../iosApp/Podfile")
@@ -31,51 +44,48 @@ kotlin {
             baseName = "shared"
             isStatic = true
         }
-        extraSpecAttributes["resources"] =
-            "['src/commonMain/resources/**', 'src/iosMain/resources/**']"
+        // The podspec "resources" attribute is owned by the Compose Multiplatform plugin,
+        // which points it at the synced composeResources (drawables and sounds).
     }
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation("io.insert-koin:koin-core:3.4.2")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+        commonMain.dependencies {
+            // Exposed as api so the Android app module uses the same Compose stack.
+            api(libs.compose.runtime)
+            api(libs.compose.foundation)
+            api(libs.compose.ui)
+            api(libs.compose.material3)
+            implementation(libs.compose.components.resources)
 
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
-                implementation("com.russhwolf:multiplatform-settings-serialization:1.0.0")
-                implementation("com.russhwolf:multiplatform-settings-coroutines:1.0.0")
-
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-                implementation(compose.components.resources)
-                implementation(compose.material3)
-            }
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.koin.core)
+            implementation(libs.multiplatform.settings.coroutines)
         }
-        val androidMain by getting {
-            dependencies {
-                api("io.insert-koin:koin-android:3.4.2")
-                implementation("androidx.datastore:datastore-preferences:1.0.0")
-                implementation("androidx.datastore:datastore-preferences-core:1.0.0")
-                implementation("com.russhwolf:multiplatform-settings-datastore:1.0.0")
-            }
+        androidMain.dependencies {
+            api(libs.koin.android)
+            implementation(libs.androidx.datastore.preferences)
+            implementation(libs.multiplatform.settings.datastore)
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-            }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
 
+compose.resources {
+    packageOfResClass = "com.ninidze.chesscomposekmm.resources"
+}
+
 android {
     namespace = "com.ninidze.chesscomposekmm"
-    compileSdk = 33
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
     defaultConfig {
-        minSdk = 24
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
-
-    sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
-    sourceSets["main"].res.srcDirs("src/androidMain/res")
-    sourceSets["main"].resources.srcDirs("src/commonMain/resources")
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }

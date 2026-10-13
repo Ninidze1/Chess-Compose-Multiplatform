@@ -10,7 +10,6 @@ import com.ninidze.chesscomposekmm.util.Constants.INVALID_BOARD_SIZE
 import com.russhwolf.settings.coroutines.FlowSettings
 import kotlinx.serialization.json.Json
 
-@Suppress("OPT_IN_USAGE")
 class ChessGameRepository(private val dataStoreSettings: FlowSettings) : IChessGameRepository {
 
     override suspend fun saveBoard(board: ChessBoard) {

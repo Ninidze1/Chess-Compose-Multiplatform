@@ -2,11 +2,12 @@ package com.ninidze.chesscomposekmm.platform
 
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import com.ninidze.chesscomposekmm.domain.sound.SoundPlayer
+import com.ninidze.chesscomposekmm.resources.Res
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import platform.AVFAudio.AVAudioPlayer
 import platform.AVFAudio.AVAudioSession
 import platform.AVFAudio.AVAudioSessionCategoryAmbient
 import platform.AVFAudio.setActive
-import platform.Foundation.NSBundle
 import platform.Foundation.NSURL
 
 /**
@@ -36,19 +37,20 @@ class IosSoundPlayer : SoundPlayer {
         player.play()
     }
 
+    @OptIn(ExperimentalResourceApi::class)
     private fun loadPlayer(actionType: ActionType): AVAudioPlayer? {
-        // The pod copies the iosMain/resources/raw folder into the main bundle as "raw".
-        val path = NSBundle.mainBundle.pathForResource(
-            actionType.soundFileName(),
-            ofType = SOUND_FILE_TYPE,
-            inDirectory = SOUND_DIRECTORY
-        ) ?: return null
-        val player = AVAudioPlayer(contentsOfURL = NSURL.fileURLWithPath(path), error = null)
+        // The clips are Compose resources (commonMain/composeResources/files/sounds), which
+        // the Compose plugin copies into the app bundle through the pod.
+        val uri = Res.getUri("$SOUND_DIRECTORY/${actionType.soundFileName()}.$SOUND_FILE_TYPE")
+        val url = if (uri.startsWith(FILE_SCHEME)) NSURL.URLWithString(uri) else NSURL.fileURLWithPath(uri)
+        if (url == null) return null
+        val player = AVAudioPlayer(contentsOfURL = url, error = null)
         player.prepareToPlay()
         return player
     }
 
-    // Must match the file names in iosMain/resources/raw (and androidMain/res/raw).
+    // Must match the file names in commonMain/composeResources/files/sounds (and
+    // androidMain/res/raw).
     private fun ActionType.soundFileName(): String = when (this) {
         ActionType.MOVE -> "move_self"
         ActionType.CAPTURE -> "capture"
@@ -59,7 +61,8 @@ class IosSoundPlayer : SoundPlayer {
     }
 
     private companion object {
-        const val SOUND_DIRECTORY = "raw"
+        const val SOUND_DIRECTORY = "files/sounds"
         const val SOUND_FILE_TYPE = "mp3"
+        const val FILE_SCHEME = "file:"
     }
 }
