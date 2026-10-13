@@ -3,18 +3,15 @@ package com.ninidze.chesscomposekmm.presentation
 import com.ninidze.chesscomposekmm.data.helper.Resource
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
-import com.ninidze.chesscomposekmm.domain.model.PieceColor.Black
-import com.ninidze.chesscomposekmm.domain.model.PieceColor.White
 import com.ninidze.chesscomposekmm.domain.model.Position
-import com.ninidze.chesscomposekmm.domain.usecase.CheckGameEndUseCase
+import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import com.ninidze.chesscomposekmm.domain.usecase.LoadBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.SaveBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.StartGameUseCase
+import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_LOADING_BOARD
-import com.ninidze.chesscomposekmm.util.extensions.movePiece
-import com.ninidze.chesscomposekmm.util.extensions.opposite
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -32,7 +29,7 @@ sealed class ChessBoardEvents {
 
 class ChessViewModel(
     private val movePieceUseCase: MovePieceUseCase,
-    private val checkGameEndUseCase: CheckGameEndUseCase,
+    private val mediaPlayer: ChessMediaPlayer,
     private val calculateBotMoveUseCase: MoveAIUseCase,
     private val startGameUseCase: StartGameUseCase,
     private val saveBoardUseCase: SaveBoardUseCase,
@@ -53,8 +50,10 @@ class ChessViewModel(
     fun onEvent(event: ChessBoardEvents) {
         when (event) {
             is ChessBoardEvents.OnGameRestart -> {
-                _chessBoardState.value = startGameUseCase()
-                saveBoard(startGameUseCase())
+                _aiMoveSet.value = null
+                val initialBoard = startGameUseCase()
+                _chessBoardState.value = initialBoard
+                saveBoard(initialBoard)
             }
 
             is ChessBoardEvents.OnPieceMove -> {
@@ -92,6 +91,7 @@ class ChessViewModel(
     // After AI move is calculated, animation starts
     private fun calculateAiMove() {
         viewModelScope.launch {
+            if (_chessBoardState.value.isGameOver) return@launch
             val aiMove = calculateBotMoveUseCase(_chessBoardState.value)
             val piece = _chessBoardState.value.getPieceAtPosition(aiMove.first)
             val targetPosition = aiMove.second
@@ -105,52 +105,31 @@ class ChessViewModel(
 
     // After animation is finished, this function is called, and Board is updated
     private fun moveAI(aiMoveSet: Pair<Position, Position>) {
-        val piece = _chessBoardState.value.getPieceAtPosition(aiMoveSet.first) ?: return
-        val targetPosition = aiMoveSet.second
-        val updatedChessBoard = _chessBoardState.value.movePiece(piece, targetPosition)
-        _chessBoardState.apply { value = updatedChessBoard }
-        checkGameEnd()
+        _aiMoveSet.value = null
+        val board = _chessBoardState.value
+        val piece = board.getPieceAtPosition(aiMoveSet.first) ?: return
+        val result = movePieceUseCase(board, piece, aiMoveSet.second)
+        if (result is Resource.Success) {
+            onMoveApplied(result.data)
+        }
     }
 
     private fun movePiece(piece: ChessPiece, targetPosition: Position) {
         viewModelScope.launch {
             val result = movePieceUseCase(_chessBoardState.value, piece, targetPosition)
             if (result is Resource.Success) {
-                _chessBoardState.apply { value = result.data }
-                checkGameEnd()
-                calculateAiMove()
+                onMoveApplied(result.data)
+                if (!result.data.isGameOver) calculateAiMove()
             } else if (result is Resource.Failure) return@launch
         }
     }
 
-    private fun switchPlayerTurnAndSave(chessBoard: ChessBoard): ChessBoard {
-        val newBoard = chessBoard.copy(
-            playerTurn = if (chessBoard.playerTurn == White) {
-                Black
-            } else {
-                White
-            }
+    // The domain move has already switched the turn and evaluated the game result
+    private fun onMoveApplied(updatedBoard: ChessBoard) {
+        _chessBoardState.value = updatedBoard
+        mediaPlayer.playSound(
+            if (updatedBoard.isGameOver) ActionType.FINISH else ActionType.MOVE
         )
-        saveBoard(newBoard)
-        return newBoard
-    }
-
-    private fun checkGameEnd() {
-        viewModelScope.launch {
-            val board = _chessBoardState.value
-            val currentPlayerColor = board.playerTurn
-
-            val gameEnded = checkGameEndUseCase(board, currentPlayerColor)
-            if (gameEnded) {
-                _chessBoardState.apply {
-                    value = value.copy(winner = currentPlayerColor.opposite())
-                    saveBoard(ChessBoard.createInitialChessBoard())
-                }
-            } else {
-                _chessBoardState.apply {
-                    value = switchPlayerTurnAndSave(value)
-                }
-            }
-        }
+        saveBoard(updatedBoard)
     }
 }

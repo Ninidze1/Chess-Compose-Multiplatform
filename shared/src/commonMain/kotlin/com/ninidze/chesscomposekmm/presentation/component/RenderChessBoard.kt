@@ -120,7 +120,7 @@ fun RenderChessBoard(
                                         .fillMaxSize(),
                                     piece = currentPiece,
                                     onPieceClick = {
-                                        if (chessBoardState.winner != null) return@PieceView
+                                        if (chessBoardState.isGameOver) return@PieceView
                                         handlePieceClick(selectedPiece = selectedPiece,
                                             chessBoardState = chessBoardState,
                                             currentPiece = currentPiece,

@@ -48,7 +48,7 @@ fun BoardScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             RestartButton(
-                isVisible = chessBoardState.winner != null,
+                isVisible = chessBoardState.isGameOver,
                 onRestartClick = { chessBoardEvents(OnGameRestart) }
             )
         }

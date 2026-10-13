@@ -6,6 +6,8 @@ object Constants {
 
     const val INVALID_MOVE_MESSAGE = "Invalid move"
     const val PIECE_NOT_FOUND = "Piece not found"
+    const val NOT_PLAYERS_TURN = "It is not this piece's turn to move"
+    const val GAME_ALREADY_FINISHED = "The game has already finished"
     const val UNKNOWN_CHESS_PIECE = "Unknown chess piece type"
     const val KING_NOT_FOUND = "King  not found on the board"
     const val ERROR_LOADING_BOARD = "Error loading board: "

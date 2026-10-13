@@ -29,8 +29,8 @@ val repositoryModule = module {
 
 val useCaseModule = module {
     single { StartGameUseCase(get()) }
-    single { CheckGameEndUseCase(get()) }
-    single { MovePieceUseCase() }
+    single { CheckGameEndUseCase() }
+    single { MovePieceUseCase(get()) }
     single { MoveAIUseCase(get(), get()) }
     single { SaveBoardUseCase(get()) }
     single { LoadBoardUseCase(get()) }

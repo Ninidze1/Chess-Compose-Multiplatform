@@ -6,7 +6,6 @@ import com.ninidze.chesscomposekmm.domain.model.PieceColor
 import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.util.Constants.KING_NOT_FOUND
-import com.ninidze.chesscomposekmm.util.Constants.PIECE_NOT_FOUND
 
 fun ChessBoard.isOccupied(position: Position): Boolean {
     return cells[position.row][position.column] != null
@@ -22,11 +21,19 @@ fun ChessBoard.isOccupiedByAlly(position: Position, color: PieceColor): Boolean 
     return piece.color == color
 }
 
+/**
+ * Relocates the piece standing on [piece]'s square to [targetPosition].
+ *
+ * The piece is resolved from the board by its position, not by reference, so a piece
+ * instance taken from an older board never crashes the lookup. This is a raw board edit:
+ * it performs no legality checks and does not switch the turn, because it is also used to
+ * simulate hypothetical moves. Real moves go through MovePieceUseCase.
+ */
 fun ChessBoard.movePiece(piece: ChessPiece, targetPosition: Position): ChessBoard {
-    val currentPosition = findPiecePosition(piece)
-        ?: error(PIECE_NOT_FOUND)
+    val currentPosition = piece.position
+    val pieceToMove = getPieceAtPosition(currentPosition) ?: piece
 
-    val updatedPiece = piece.movePieceTo(targetPosition)
+    val updatedPiece = pieceToMove.movePieceTo(targetPosition)
 
     val updatedCells = cells.mapIndexed { rowId, row ->
         row.mapIndexed { columnId, currentPiece ->
@@ -41,15 +48,13 @@ fun ChessBoard.movePiece(piece: ChessPiece, targetPosition: Position): ChessBoar
     return copy(cells = updatedCells)
 }
 
-fun ChessBoard.findPiecePosition(piece: ChessPiece): Position? {
-    cells.forEachIndexed { rowIndex, row ->
-        row.forEachIndexed { columnIndex, currentPiece ->
-            if (currentPiece == piece) {
-                return Position(rowIndex, columnIndex)
-            }
-        }
-    }
-    return null
+/**
+ * Returns the piece on this board that stands on [piece]'s square, provided it has the same
+ * color and type. Use this to turn a possibly stale piece reference into the current one.
+ */
+fun ChessBoard.findPiece(piece: ChessPiece): ChessPiece? {
+    return getPieceAtPosition(piece.position)
+        ?.takeIf { it.color == piece.color && it.type == piece.type }
 }
 
 fun ChessBoard.isPositionUnderAttack(

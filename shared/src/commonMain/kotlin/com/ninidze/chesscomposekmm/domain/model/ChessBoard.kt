@@ -14,8 +14,15 @@ import com.ninidze.chesscomposekmm.util.Constants.BOARD_SIZE
 data class ChessBoard(
     val cells: List<List<ChessPiece?>>,
     val playerTurn: PieceColor,
-    val winner : PieceColor? = null
+    val result: GameResult = GameResult.Ongoing
 ) {
+    /** The side that delivered checkmate, or null if the game is not won. */
+    val winner: PieceColor?
+        get() = (result as? GameResult.Checkmate)?.winner
+
+    val isGameOver: Boolean
+        get() = result.isGameOver
+
     fun getPieceAtPosition(position: Position): ChessPiece? = cells[position.row][position.column]
 
     companion object {
