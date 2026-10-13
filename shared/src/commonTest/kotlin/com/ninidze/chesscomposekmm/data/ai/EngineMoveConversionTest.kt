@@ -69,12 +69,11 @@ class EngineMoveConversionTest {
         assertNull(EngineChessAi.toAiMove(move))
     }
 
-    private fun engineMove(from: String, to: String, piece: Int, moveType: Int): Int =
-        Move.genMove(
-            BitboardUtils.algebraic2Index(from),
-            BitboardUtils.algebraic2Index(to),
-            piece,
-            false,
-            moveType
-        )
+    private fun engineMove(from: String, to: String, piece: Int, moveType: Int): Int = Move.genMove(
+        BitboardUtils.algebraic2Index(from),
+        BitboardUtils.algebraic2Index(to),
+        piece,
+        false,
+        moveType
+    )
 }

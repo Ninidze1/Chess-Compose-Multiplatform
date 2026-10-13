@@ -11,6 +11,5 @@ import com.ninidze.chesscomposekmm.domain.model.ChessBoard
  * app's rules; the caller must check it before applying it.
  */
 class MoveAIUseCase(private val chessAi: ChessAi) {
-    suspend operator fun invoke(chessBoard: ChessBoard): AiMove? =
-        chessAi.findBestMove(chessBoard)
+    suspend operator fun invoke(chessBoard: ChessBoard): AiMove? = chessAi.findBestMove(chessBoard)
 }

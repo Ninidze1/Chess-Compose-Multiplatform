@@ -16,10 +16,7 @@ import com.ninidze.chesscomposekmm.presentation.Strings
 
 /** Describes a finished game; shows nothing while the game is ongoing. */
 @Composable
-fun GameResultText(
-    modifier: Modifier = Modifier,
-    result: GameResult
-) {
+fun GameResultText(modifier: Modifier = Modifier, result: GameResult) {
     val text = Strings.resultDescription(result) ?: return
     Text(
         text = text,

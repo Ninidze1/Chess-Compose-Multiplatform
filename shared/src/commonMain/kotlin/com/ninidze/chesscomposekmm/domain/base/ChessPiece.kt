@@ -36,9 +36,7 @@ abstract class ChessPiece(
      * @param chessBoard The current state of the chessboard.
      * @return A list of positions to which the chess piece can potentially move.
      */
-    open fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> =
-        moveStrategy.getMoves(this, chessBoard)
-
+    open fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> = moveStrategy.getMoves(this, chessBoard)
 
     /**
      * Checks if a given move is legal for this chess piece on a given chessboard:
@@ -83,8 +81,7 @@ abstract class ChessPiece(
      * @param chessBoard The current state of the chessboard.
      * @return A list of positions where the chess piece can potentially capture an opponent's piece.
      */
-    open fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> =
-        getUnfilteredMoves(chessBoard)
+    open fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> = getUnfilteredMoves(chessBoard)
 
     /**
      * Moves the chess piece to a new position on the chessboard.
@@ -96,10 +93,7 @@ abstract class ChessPiece(
      * @return A new instance of the same type of chess piece but at the new position.
      * @throws RuntimeException If the type of the chess piece is unknown.
      */
-    open fun movePieceTo(
-        targetPosition: Position,
-        promotion: PieceType = PieceType.Queen
-    ): ChessPiece = when (this) {
+    open fun movePieceTo(targetPosition: Position, promotion: PieceType = PieceType.Queen): ChessPiece = when (this) {
         is Pawn -> Pawn(color, targetPosition)
         is King -> King(color, targetPosition)
         is Knight -> Knight(color, targetPosition)

@@ -9,9 +9,7 @@ import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.util.Constants.KING_NOT_FOUND
 import kotlin.math.abs
 
-fun ChessBoard.isOccupied(position: Position): Boolean {
-    return cells[position.row][position.column] != null
-}
+fun ChessBoard.isOccupied(position: Position): Boolean = cells[position.row][position.column] != null
 
 fun ChessBoard.isOccupiedByOpponent(position: Position, color: PieceColor): Boolean {
     val piece = cells[position.row][position.column] ?: return false
@@ -77,10 +75,9 @@ fun ChessBoard.movePiece(
 }
 
 /** True if moving [piece] to [targetPosition] is castling: a king stepping two files. */
-fun isCastlingMove(piece: ChessPiece, targetPosition: Position): Boolean =
-    piece.type == PieceType.King &&
-        piece.position.row == targetPosition.row &&
-        abs(targetPosition.column - piece.position.column) == 2
+fun isCastlingMove(piece: ChessPiece, targetPosition: Position): Boolean = piece.type == PieceType.King &&
+    piece.position.row == targetPosition.row &&
+    abs(targetPosition.column - piece.position.column) == 2
 
 /**
  * True if moving [piece] to [targetPosition] is an en-passant capture: a pawn moving
@@ -101,22 +98,15 @@ fun ChessBoard.isEnPassantCapture(piece: ChessPiece, targetPosition: Position): 
  * Returns the piece on this board that stands on [piece]'s square, provided it has the same
  * color and type. Use this to turn a possibly stale piece reference into the current one.
  */
-fun ChessBoard.findPiece(piece: ChessPiece): ChessPiece? {
-    return getPieceAtPosition(piece.position)
-        ?.takeIf { it.color == piece.color && it.type == piece.type }
-}
+fun ChessBoard.findPiece(piece: ChessPiece): ChessPiece? = getPieceAtPosition(piece.position)
+    ?.takeIf { it.color == piece.color && it.type == piece.type }
 
 /** True if any piece of [attackerColor] attacks [targetPosition]. */
-fun ChessBoard.isPositionUnderAttack(
-    targetPosition: Position,
-    attackerColor: PieceColor
-): Boolean {
-    return cells.any { row ->
-        row.any { piece ->
-            piece != null &&
-                piece.color == attackerColor &&
-                targetPosition in piece.getPotentialCaptures(this)
-        }
+fun ChessBoard.isPositionUnderAttack(targetPosition: Position, attackerColor: PieceColor): Boolean = cells.any { row ->
+    row.any { piece ->
+        piece != null &&
+            piece.color == attackerColor &&
+            targetPosition in piece.getPotentialCaptures(this)
     }
 }
 
@@ -128,9 +118,8 @@ fun ChessBoard.isKingChecked(color: PieceColor): Boolean {
     )
 }
 
-fun ChessBoard.isKingCheckedAfterMove(piece: ChessPiece, targetPosition: Position): Boolean {
-    return movePiece(piece, targetPosition).isKingChecked(color = piece.color)
-}
+fun ChessBoard.isKingCheckedAfterMove(piece: ChessPiece, targetPosition: Position): Boolean =
+    movePiece(piece, targetPosition).isKingChecked(color = piece.color)
 
 fun ChessBoard.getKingsPosition(color: PieceColor): Position {
     val position = this.cells

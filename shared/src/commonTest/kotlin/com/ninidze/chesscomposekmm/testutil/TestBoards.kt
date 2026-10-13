@@ -99,18 +99,16 @@ fun ChessBoard.play(from: Position, to: Position, promotion: PieceType = PieceTy
 }
 
 /** Plays moves written as "e2e4" one after another. */
-fun ChessBoard.playAll(vararg moves: String): ChessBoard =
-    moves.fold(this) { board, move ->
-        require(move.length == 4) { "Expected a move like e2e4: $move" }
-        board.play(move.substring(0, 2), move.substring(2, 4))
-    }
+fun ChessBoard.playAll(vararg moves: String): ChessBoard = moves.fold(this) { board, move ->
+    require(move.length == 4) { "Expected a move like e2e4: $move" }
+    board.play(move.substring(0, 2), move.substring(2, 4))
+}
 
 /** Every legal move of the side to move, as from -> to pairs. */
-fun ChessBoard.legalMoves(): List<Pair<Position, Position>> =
-    cells.flatten()
-        .filterNotNull()
-        .filter { it.color == playerTurn }
-        .flatMap { piece -> piece.getAvailableMoves(this).map { piece.position to it } }
+fun ChessBoard.legalMoves(): List<Pair<Position, Position>> = cells.flatten()
+    .filterNotNull()
+    .filter { it.color == playerTurn }
+    .flatMap { piece -> piece.getAvailableMoves(this).map { piece.position to it } }
 
 /** The legal targets of the piece on [square]. */
 fun ChessBoard.movesFrom(square: String): List<Position> {

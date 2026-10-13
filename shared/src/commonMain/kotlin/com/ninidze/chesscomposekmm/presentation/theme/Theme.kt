@@ -12,10 +12,7 @@ import androidx.compose.ui.unit.dp
 
 /** The app theme on both platforms: Material 3 colors plus the [BoardColors] for [darkTheme]. */
 @Composable
-fun ChessAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
+fun ChessAppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     val boardColors = if (darkTheme) DarkBoardColors else LightBoardColors
     val colors = if (darkTheme) {
         darkColorScheme(

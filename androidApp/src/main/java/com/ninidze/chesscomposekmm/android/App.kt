@@ -21,9 +21,14 @@ class App : Application() {
             androidLogger()
             androidContext(this@App)
             modules(
-                viewModelModule, chessViewModelModule, useCaseModule,
-                platformUtilModule, soundPlayerModule, chessEngineModule,
-                localDataStoreModule, repositoryModule
+                viewModelModule,
+                chessViewModelModule,
+                useCaseModule,
+                platformUtilModule,
+                soundPlayerModule,
+                chessEngineModule,
+                localDataStoreModule,
+                repositoryModule
             )
         }
     }

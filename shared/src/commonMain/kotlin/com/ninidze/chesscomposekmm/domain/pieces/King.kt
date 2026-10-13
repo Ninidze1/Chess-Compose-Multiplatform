@@ -14,10 +14,8 @@ import com.ninidze.chesscomposekmm.util.extensions.opposite
 import kotlin.math.max
 import kotlin.math.min
 
-class King(
-    override val color: PieceColor,
-    override val position: Position,
-) : ChessPiece(color, position, KingMoveStrategy()) {
+class King(override val color: PieceColor, override val position: Position) :
+    ChessPiece(color, position, KingMoveStrategy()) {
     override val type: PieceType = King
 
     /** The adjacent squares plus any castling move. */
@@ -29,8 +27,7 @@ class King(
      * because castling generation itself asks which squares are attacked, and the opposing
      * king is one of the attackers.
      */
-    override fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> =
-        super.getUnfilteredMoves(chessBoard)
+    override fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> = super.getUnfilteredMoves(chessBoard)
 
     /**
      * Castling targets (two files towards the rook) that are allowed by the castling rights,
@@ -51,10 +48,14 @@ class King(
         return listOfNotNull(
             if (kingSideAllowed) {
                 castlingTarget(chessBoard, CastlingRights.KING_SIDE_ROOK_COLUMN)
-            } else null,
+            } else {
+                null
+            },
             if (queenSideAllowed) {
                 castlingTarget(chessBoard, CastlingRights.QUEEN_SIDE_ROOK_COLUMN)
-            } else null
+            } else {
+                null
+            }
         )
     }
 

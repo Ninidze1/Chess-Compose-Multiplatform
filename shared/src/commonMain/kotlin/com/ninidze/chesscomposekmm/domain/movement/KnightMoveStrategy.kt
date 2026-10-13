@@ -5,7 +5,7 @@ import com.ninidze.chesscomposekmm.domain.base.MoveStrategy
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.Position
 
-class KnightMoveStrategy: MoveStrategy {
+class KnightMoveStrategy : MoveStrategy {
     override fun getMoves(piece: ChessPiece, chessBoard: ChessBoard): List<Position> {
         val position = piece.position
         return listOf(

@@ -78,7 +78,6 @@ data class ChessBoard(
             }
         }
 
-
         /**
          * Creates a major chess piece (rook, knight, bishop, queen, or king) at a given position.
          *

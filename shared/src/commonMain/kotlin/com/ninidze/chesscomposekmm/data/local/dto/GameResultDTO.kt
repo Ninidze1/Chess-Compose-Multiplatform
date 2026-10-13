@@ -14,11 +14,7 @@ enum class GameResultType {
 }
 
 @Serializable
-data class GameResultDTO(
-    val type: GameResultType,
-    val winner: PieceColor? = null,
-    val drawReason: DrawReason? = null
-) {
+data class GameResultDTO(val type: GameResultType, val winner: PieceColor? = null, val drawReason: DrawReason? = null) {
     /**
      * Falls back to [GameResult.Ongoing] when a required field is missing, so a malformed
      * entry never blocks loading the board.

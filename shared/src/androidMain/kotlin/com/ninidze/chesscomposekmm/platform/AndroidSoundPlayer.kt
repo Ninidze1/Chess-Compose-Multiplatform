@@ -7,9 +7,9 @@ import android.media.SoundPool
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import com.ninidze.chesscomposekmm.domain.sound.SoundPlayer
 import com.ninidze.chesscomposekmm.resources.Res
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 
 /**
  * Plays the game sounds through one [SoundPool]. Every clip is loaded once, when the player

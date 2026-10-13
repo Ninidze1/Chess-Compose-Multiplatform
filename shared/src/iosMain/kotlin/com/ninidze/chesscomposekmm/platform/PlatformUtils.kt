@@ -1,10 +1,10 @@
 package com.ninidze.chesscomposekmm.platform
 
+import kotlin.random.Random
 import platform.Foundation.NSDate
 import platform.Foundation.timeIntervalSince1970
-import kotlin.random.Random
 
-actual class PlatformUtils{
+actual class PlatformUtils {
     private val random = Random.Default
 
     actual fun randomFloat(): Float = random.nextFloat()
@@ -20,5 +20,4 @@ actual class PlatformUtils{
     actual fun arrayFill(array: LongArray, value: Long) {
         for (i in array.indices) array[i] = value
     }
-
 }

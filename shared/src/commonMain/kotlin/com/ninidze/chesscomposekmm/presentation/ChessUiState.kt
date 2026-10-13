@@ -23,8 +23,8 @@ data class ChessUiState(
     /** True when the user must not be able to select or move pieces. */
     val isInputLocked: Boolean
         get() = isLoading ||
-                isAiThinking ||
-                aiMove != null ||
-                board.isGameOver ||
-                board.playerTurn != humanColor
+            isAiThinking ||
+            aiMove != null ||
+            board.isGameOver ||
+            board.playerTurn != humanColor
 }

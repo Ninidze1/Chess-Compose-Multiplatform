@@ -6,13 +6,13 @@ import com.ninidze.chesscomposekmm.testutil.toFen
 import com.ninidze.chesscomposekmm.util.Constants.CHESS_BOARD_KEY
 import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.coroutines.toFlowSettings
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 
 class ChessGameRepositoryTest {
 

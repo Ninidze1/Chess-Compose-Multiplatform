@@ -13,6 +13,8 @@ import org.koin.mp.KoinPlatform
 // after initKoin(); it is never cleared because nothing outlives it.
 private val chessViewModel: ChessViewModel by lazy { KoinPlatform.getKoin().get() }
 
+// Called from Swift as AppKt.MainViewController(), so it keeps the UIKit factory name.
+@Suppress("ktlint:standard:function-naming")
 fun MainViewController() = ComposeUIViewController {
     val uiState by chessViewModel.uiState.collectAsState()
     ChessAppTheme {

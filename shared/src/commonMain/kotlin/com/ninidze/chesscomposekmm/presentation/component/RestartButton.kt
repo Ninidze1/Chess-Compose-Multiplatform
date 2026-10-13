@@ -16,11 +16,7 @@ import com.ninidze.chesscomposekmm.resources.ic_restart
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
-fun RestartButton(
-    modifier: Modifier = Modifier,
-    isVisible: Boolean = false,
-    onRestartClick: () -> Unit
-) {
+fun RestartButton(modifier: Modifier = Modifier, isVisible: Boolean = false, onRestartClick: () -> Unit) {
     AnimatedVisibility(visible = isVisible) {
         Button(
             modifier = modifier

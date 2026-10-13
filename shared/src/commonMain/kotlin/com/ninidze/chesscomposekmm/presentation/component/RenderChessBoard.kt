@@ -51,12 +51,7 @@ import kotlin.math.roundToInt
  * @property promotion The piece a promoting pawn becomes; null for every other move.
  * @property isAiMove True for the AI move published by the ViewModel, false for the user's own move.
  */
-private data class AnimatedMove(
-    val from: Position,
-    val to: Position,
-    val promotion: PieceType?,
-    val isAiMove: Boolean
-)
+private data class AnimatedMove(val from: Position, val to: Position, val promotion: PieceType?, val isAiMove: Boolean)
 
 /**
  * What every affected piece does while a move animates.
@@ -66,10 +61,7 @@ private data class AnimatedMove(
  * @property captured The square of the piece that fades out: the target square for a normal
  * capture, the square beside the pawn for en passant; null when nothing is captured.
  */
-private data class MoveMotion(
-    val slides: Map<Position, Position>,
-    val captured: Position?
-)
+private data class MoveMotion(val slides: Map<Position, Position>, val captured: Position?)
 
 /**
  * Renders the board as the largest square that fits the incoming constraints, and reports
@@ -326,17 +318,13 @@ private fun BoardSquare(
 }
 
 /** For example "e4, White knight, can be captured". */
-private fun squareDescription(
-    position: Position,
-    piece: ChessPiece?,
-    isSelected: Boolean,
-    isTarget: Boolean
-): String = buildList {
-    add(position.toAlgebraic())
-    add(piece?.let { Strings.pieceName(it.color, it.type) } ?: Strings.EMPTY_SQUARE)
-    if (isSelected) add(Strings.SELECTED)
-    if (isTarget) add(if (piece != null) Strings.POSSIBLE_CAPTURE else Strings.POSSIBLE_MOVE)
-}.joinToString(separator = ", ")
+private fun squareDescription(position: Position, piece: ChessPiece?, isSelected: Boolean, isTarget: Boolean): String =
+    buildList {
+        add(position.toAlgebraic())
+        add(piece?.let { Strings.pieceName(it.color, it.type) } ?: Strings.EMPTY_SQUARE)
+        if (isSelected) add(Strings.SELECTED)
+        if (isTarget) add(if (piece != null) Strings.POSSIBLE_CAPTURE else Strings.POSSIBLE_MOVE)
+    }.joinToString(separator = ", ")
 
 /**
  * Works out how [move] looks on this board: castling also slides the rook to the square the

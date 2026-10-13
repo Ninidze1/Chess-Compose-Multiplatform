@@ -29,7 +29,7 @@ val platformUtilModule = module {
 }
 
 val repositoryModule = module {
-     single<IChessGameRepository> { ChessGameRepository(get()) }
+    single<IChessGameRepository> { ChessGameRepository(get()) }
 }
 
 val useCaseModule = module {

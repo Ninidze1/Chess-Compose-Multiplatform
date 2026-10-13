@@ -7,8 +7,4 @@ package com.ninidze.chesscomposekmm.domain.model
  * @property to The square the piece moves to.
  * @property promotion The piece a pawn promotes to, or null if the move is not a promotion.
  */
-data class AiMove(
-    val from: Position,
-    val to: Position,
-    val promotion: PieceType? = null
-)
+data class AiMove(val from: Position, val to: Position, val promotion: PieceType? = null)

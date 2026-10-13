@@ -10,12 +10,12 @@ import com.ninidze.chesscomposekmm.testutil.boardOf
 import com.ninidze.chesscomposekmm.testutil.playAll
 import com.ninidze.chesscomposekmm.testutil.toFen
 import com.ninidze.chesscomposekmm.util.extensions.positionKey
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.builtins.nullable
-import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.nullable
+import kotlinx.serialization.json.Json
 
 class ChessBoardDTOTest {
 

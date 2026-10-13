@@ -8,9 +8,7 @@ import com.ninidze.chesscomposekmm.domain.repository.IChessGameRepository
 import com.ninidze.chesscomposekmm.domain.sound.SoundPlayer
 
 /** A [ChessAi] that answers with [answer] and records every board it was asked about. */
-class FakeChessAi(
-    private val answer: suspend (ChessBoard) -> AiMove? = { null }
-) : ChessAi {
+class FakeChessAi(private val answer: suspend (ChessBoard) -> AiMove? = { null }) : ChessAi {
     val requests = mutableListOf<ChessBoard>()
 
     override suspend fun findBestMove(board: ChessBoard): AiMove? {

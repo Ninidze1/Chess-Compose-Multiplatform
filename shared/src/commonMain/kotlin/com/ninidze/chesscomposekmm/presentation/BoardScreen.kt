@@ -33,10 +33,7 @@ import com.ninidze.chesscomposekmm.presentation.component.WinningDialog
  * them in portrait, beside them in landscape, so the restart button always stays visible.
  */
 @Composable
-fun BoardScreen(
-    uiState: ChessUiState,
-    chessBoardEvents: (ChessBoardEvents) -> Unit
-) {
+fun BoardScreen(uiState: ChessUiState, chessBoardEvents: (ChessBoardEvents) -> Unit) {
     val result = uiState.board.result
     val isFinished = uiState.board.isGameOver && !uiState.isLoading
     // Shown again for every newly finished game, since the result passes through Ongoing.
@@ -106,11 +103,7 @@ fun BoardScreen(
 }
 
 @Composable
-private fun Board(
-    modifier: Modifier,
-    uiState: ChessUiState,
-    chessBoardEvents: (ChessBoardEvents) -> Unit
-) {
+private fun Board(modifier: Modifier, uiState: ChessUiState, chessBoardEvents: (ChessBoardEvents) -> Unit) {
     RenderChessBoard(
         modifier = modifier,
         chessBoardState = uiState.board,
@@ -127,11 +120,7 @@ private fun Board(
 
 /** The result of a finished game and the restart button; empty while the game is ongoing. */
 @Composable
-private fun GameControls(
-    isFinished: Boolean,
-    uiState: ChessUiState,
-    chessBoardEvents: (ChessBoardEvents) -> Unit
-) {
+private fun GameControls(isFinished: Boolean, uiState: ChessUiState, chessBoardEvents: (ChessBoardEvents) -> Unit) {
     if (isFinished) {
         GameResultText(result = uiState.board.result)
         Spacer(modifier = Modifier.height(16.dp))

@@ -14,7 +14,9 @@ import org.koin.core.parameter.parametersOf
  * Keeps the shared [ChessViewModel] across configuration changes. The shared ViewModel comes
  * from Koin and runs its work in this ViewModel's [viewModelScope].
  */
-class AndroidChessViewModel : ViewModel(), KoinComponent {
+class AndroidChessViewModel :
+    ViewModel(),
+    KoinComponent {
 
     private val chessViewModel: ChessViewModel = get { parametersOf(viewModelScope) }
 

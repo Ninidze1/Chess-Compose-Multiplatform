@@ -27,7 +27,7 @@ import kotlinx.serialization.Serializable
 data class ChessBoardDTO(
     val cells: List<List<ChessPieceDTO?>>,
     val playerTurn: PieceColor,
-    val winner : PieceColor? = null,
+    val winner: PieceColor? = null,
     val result: GameResultDTO? = null,
     val castlingRights: CastlingRightsDTO? = null,
     val enPassantTarget: PositionDTO? = null,

@@ -47,11 +47,7 @@ class MovePieceUseCase(private val checkGameEndUseCase: CheckGameEndUseCase) {
     }
 
     /** The board after a validated move, with all game state advanced except the result. */
-    private fun ChessBoard.nextBoard(
-        piece: ChessPiece,
-        targetPosition: Position,
-        promotion: PieceType
-    ): ChessBoard {
+    private fun ChessBoard.nextBoard(piece: ChessPiece, targetPosition: Position, promotion: PieceType): ChessBoard {
         val from = piece.position
         val isPawnMove = piece.type == PieceType.Pawn
         val isCapture = getPieceAtPosition(targetPosition) != null ||

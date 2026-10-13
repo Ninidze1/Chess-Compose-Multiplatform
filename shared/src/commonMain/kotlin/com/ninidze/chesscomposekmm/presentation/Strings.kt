@@ -39,8 +39,7 @@ object Strings {
     }
 
     /** For example "White knight". */
-    fun pieceName(color: PieceColor, type: PieceType): String =
-        "${colorName(color)} ${pieceTypeName(type)}"
+    fun pieceName(color: PieceColor, type: PieceType): String = "${colorName(color)} ${pieceTypeName(type)}"
 
     /** For example "Promote to knight". */
     fun promoteTo(type: PieceType): String = "$PROMOTE_TO ${pieceTypeName(type)}"

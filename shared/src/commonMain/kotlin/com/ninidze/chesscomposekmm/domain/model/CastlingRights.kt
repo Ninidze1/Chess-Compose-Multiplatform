@@ -59,7 +59,6 @@ data class CastlingRights(
         val None = CastlingRights()
 
         /** The row a side's king and rooks start on. Row 0 is rank 8. */
-        fun homeRow(color: PieceColor): Int =
-            if (color == PieceColor.White) BOARD_SIZE - 1 else 0
+        fun homeRow(color: PieceColor): Int = if (color == PieceColor.White) BOARD_SIZE - 1 else 0
     }
 }

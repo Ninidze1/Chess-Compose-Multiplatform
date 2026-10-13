@@ -46,11 +46,7 @@ sealed class ChessBoardEvents {
      * The user moved the piece standing on [from] to [to]. [promotion] is the piece a pawn
      * reaching the last rank becomes; null means a queen.
      */
-    data class OnPieceMove(
-        val from: Position,
-        val to: Position,
-        val promotion: PieceType? = null
-    ) : ChessBoardEvents()
+    data class OnPieceMove(val from: Position, val to: Position, val promotion: PieceType? = null) : ChessBoardEvents()
 
     data object OnGameRestart : ChessBoardEvents()
 
@@ -109,7 +105,9 @@ class ChessViewModel(
     // the board it was computed for is still the current one.
     private var boardVersion = 0L
 
-    init { loadBoard() }
+    init {
+        loadBoard()
+    }
 
     fun onEvent(event: ChessBoardEvents) {
         when (event) {
@@ -291,20 +289,14 @@ class ChessViewModel(
         return piece.color == AI_COLOR && piece.isValidMove(board, to)
     }
 
-    private fun isAiTurn(board: ChessBoard): Boolean =
-        !board.isGameOver && board.playerTurn == AI_COLOR
+    private fun isAiTurn(board: ChessBoard): Boolean = !board.isGameOver && board.playerTurn == AI_COLOR
 
     /**
      * Makes [updatedBoard], the result of moving [from] -> [to] on [previousBoard], the current
      * board and plays the sound for that move. The domain move has already switched the turn
      * and evaluated the game result.
      */
-    private fun applyMove(
-        previousBoard: ChessBoard,
-        from: Position,
-        to: Position,
-        updatedBoard: ChessBoard
-    ): Long {
+    private fun applyMove(previousBoard: ChessBoard, from: Position, to: Position, updatedBoard: ChessBoard): Long {
         val version = replaceBoard(updatedBoard)
         soundPlayer.playSound(moveSound(previousBoard, from, to, updatedBoard))
         return version
