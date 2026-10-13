@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.AiMoveFinished
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.OnGameRestart
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.OnPieceMove
+import com.ninidze.chesscomposekmm.presentation.component.GameResultText
 import com.ninidze.chesscomposekmm.presentation.component.RenderChessBoard
 import com.ninidze.chesscomposekmm.presentation.component.RestartButton
 import com.ninidze.chesscomposekmm.presentation.theme.*
@@ -38,11 +39,16 @@ fun BoardScreen(
                 onAIMoveFinished = { from, to ->
                     chessBoardEvents(AiMoveFinished(from, to))
                 },
-                onPieceMove = { from, to ->
-                    chessBoardEvents(OnPieceMove(from, to))
+                onPieceMove = { from, to, promotion ->
+                    chessBoardEvents(OnPieceMove(from, to, promotion))
                 }
             )
             Spacer(modifier = Modifier.height(24.dp))
+
+            if (uiState.board.isGameOver && !uiState.isLoading) {
+                GameResultText(result = uiState.board.result)
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             RestartButton(
                 isVisible = uiState.board.isGameOver && !uiState.isLoading,

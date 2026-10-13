@@ -36,8 +36,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 sealed class ChessBoardEvents {
-    /** The user moved the piece standing on [from] to [to]. */
-    data class OnPieceMove(val from: Position, val to: Position) : ChessBoardEvents()
+    /**
+     * The user moved the piece standing on [from] to [to]. [promotion] is the piece a pawn
+     * reaching the last rank becomes; null means a queen.
+     */
+    data class OnPieceMove(
+        val from: Position,
+        val to: Position,
+        val promotion: PieceType? = null
+    ) : ChessBoardEvents()
     object OnGameRestart : ChessBoardEvents()
 
     /** The UI finished animating the pending AI move [from] -> [to]. */
@@ -83,7 +90,7 @@ class ChessViewModel(
     fun onEvent(event: ChessBoardEvents) {
         when (event) {
             is ChessBoardEvents.OnGameRestart -> restartGame()
-            is ChessBoardEvents.OnPieceMove -> onHumanMove(event.from, event.to)
+            is ChessBoardEvents.OnPieceMove -> onHumanMove(event.from, event.to, event.promotion)
             is ChessBoardEvents.AiMoveFinished -> onAiMoveAnimated(event.from, event.to)
         }
     }
@@ -122,13 +129,13 @@ class ChessViewModel(
         viewModelScope.launch { saveBoard(initialBoard) }
     }
 
-    private fun onHumanMove(from: Position, to: Position) {
+    private fun onHumanMove(from: Position, to: Position, promotion: PieceType?) {
         if (_uiState.value.isInputLocked) return
         cancelTurn()
         // UNDISPATCHED applies the human move before this call returns, so the board (and
         // with it the input lock) is updated before the next UI event can be handled.
         turnJob = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            playTurn(from, to)
+            playTurn(from, to, promotion)
         }
     }
 
@@ -136,14 +143,14 @@ class ChessViewModel(
      * The whole turn as one sequential pipeline: apply the human move, stop if the game
      * is over, otherwise let the AI answer if it is its turn.
      */
-    private suspend fun playTurn(from: Position, to: Position) {
+    private suspend fun playTurn(from: Position, to: Position, promotion: PieceType?) {
         val board = _uiState.value.board
         if (board.isGameOver || board.playerTurn != HUMAN_COLOR) return
         val piece = board.getPieceAtPosition(from)
             ?.takeIf { it.color == HUMAN_COLOR }
             ?: return
 
-        val result = movePieceUseCase(board, piece, to)
+        val result = movePieceUseCase(board, piece, to, promotion ?: PieceType.Queen)
         if (result !is Resource.Success) return
         val movedBoard = result.data
         val version = applyMove(movedBoard)

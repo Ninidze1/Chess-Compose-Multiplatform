@@ -26,11 +26,14 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.zIndex
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
+import com.ninidze.chesscomposekmm.domain.model.PieceColor
+import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.presentation.theme.ActiveCell
 import com.ninidze.chesscomposekmm.presentation.theme.BoardBlack
 import com.ninidze.chesscomposekmm.presentation.theme.BoardWhite
 import com.ninidze.chesscomposekmm.util.Constants.ANIMATION_DURATION_MS
+import com.ninidze.chesscomposekmm.util.Constants.BOARD_SIZE
 import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByOpponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -39,8 +42,12 @@ import kotlinx.coroutines.launch
 /**
  * Renders the board and reports moves by position.
  *
+ * A pawn move onto the last rank first shows a [PromotionPicker]; the move is only animated
+ * and reported once a piece is chosen, and dismissing the picker cancels it.
+ *
  * @param isInputLocked When true, pieces cannot be selected or moved (AI pending, loading, game over).
- * @param onPieceMove Called with (from, to) once the user's move has been animated.
+ * @param onPieceMove Called with (from, to, promotion) once the user's move has been animated.
+ * promotion is the chosen piece for a promoting pawn move, null for every other move.
  * @param onAIMoveFinished Called with the [aiMoveSet] (from, to) once it has been animated.
  */
 @Composable
@@ -49,7 +56,7 @@ fun RenderChessBoard(
     aiMoveSet: Pair<Position, Position>?,
     isInputLocked: Boolean,
     composableScope: CoroutineScope = rememberCoroutineScope(),
-    onPieceMove: (Position, Position) -> Unit,
+    onPieceMove: (Position, Position, PieceType?) -> Unit,
     onAIMoveFinished: (Position, Position) -> Unit
 ) {
     var cellSize by remember { mutableStateOf(IntSize(0, 0)) }
@@ -58,12 +65,16 @@ fun RenderChessBoard(
     var pieceOffsets by remember { mutableStateOf<Map<ChessPiece, IntOffset>>(emptyMap()) }
     // True while the user's own move is being animated, before it is sent to the ViewModel.
     var isAnimatingMove by remember { mutableStateOf(false) }
+    // A promoting pawn move waiting for the user's choice; dropped when the board changes.
+    var pendingPromotion by remember(chessBoardState) {
+        mutableStateOf<Pair<ChessPiece, Position>?>(null)
+    }
 
     val currentBoard by rememberUpdatedState(chessBoardState)
     val currentOnPieceMove by rememberUpdatedState(onPieceMove)
     val currentOnAIMoveFinished by rememberUpdatedState(onAIMoveFinished)
 
-    val isLocked = isInputLocked || isAnimatingMove
+    val isLocked = isInputLocked || isAnimatingMove || pendingPromotion != null
     val selectedPiece: ChessPiece? = if (isLocked) {
         null
     } else {
@@ -85,26 +96,37 @@ fun RenderChessBoard(
         currentOnAIMoveFinished(aiMove.first, aiMove.second)
     }
 
-    val startMove: (ChessPiece, Position) -> Unit = startMove@{ piece, targetPosition ->
-        if (isInputLocked || isAnimatingMove) return@startMove
-        val boardAtStart = chessBoardState
-        val fromPosition = piece.position
-        isAnimatingMove = true
-        selectedPosition = null
-        pieceOffsets = pieceOffsets + (piece to piece.calculateMoveAnimation(
-            targetPosition = targetPosition,
-            cellSize = cellSize
-        ))
-        composableScope.launch {
-            try {
-                delay(ANIMATION_DURATION_MS)
-                // Drop the move if the board was replaced (restart, load) meanwhile.
-                if (currentBoard === boardAtStart) {
-                    currentOnPieceMove(fromPosition, targetPosition)
+    val animateMove: (ChessPiece, Position, PieceType?) -> Unit =
+        animateMove@{ piece, targetPosition, promotion ->
+            if (isInputLocked || isAnimatingMove) return@animateMove
+            val boardAtStart = chessBoardState
+            val fromPosition = piece.position
+            isAnimatingMove = true
+            selectedPosition = null
+            pieceOffsets = pieceOffsets + (piece to piece.calculateMoveAnimation(
+                targetPosition = targetPosition,
+                cellSize = cellSize
+            ))
+            composableScope.launch {
+                try {
+                    delay(ANIMATION_DURATION_MS)
+                    // Drop the move if the board was replaced (restart, load) meanwhile.
+                    if (currentBoard === boardAtStart) {
+                        currentOnPieceMove(fromPosition, targetPosition, promotion)
+                    }
+                } finally {
+                    isAnimatingMove = false
                 }
-            } finally {
-                isAnimatingMove = false
             }
+        }
+
+    val startMove: (ChessPiece, Position) -> Unit = startMove@{ piece, targetPosition ->
+        if (isInputLocked || isAnimatingMove || pendingPromotion != null) return@startMove
+        if (piece.isPromotingMove(targetPosition)) {
+            selectedPosition = null
+            pendingPromotion = piece to targetPosition
+        } else {
+            animateMove(piece, targetPosition, null)
         }
     }
 
@@ -153,7 +175,9 @@ fun RenderChessBoard(
                                         .fillMaxSize(),
                                     piece = currentPiece,
                                     onPieceClick = {
-                                        if (isInputLocked || isAnimatingMove) return@PieceView
+                                        if (isInputLocked || isAnimatingMove || pendingPromotion != null) {
+                                            return@PieceView
+                                        }
                                         handlePieceClick(
                                             selectedPiece = selectedPiece,
                                             chessBoardState = chessBoardState,
@@ -168,6 +192,18 @@ fun RenderChessBoard(
                 }
             }
         }
+
+        pendingPromotion?.let { (piece, targetPosition) ->
+            PromotionPicker(
+                modifier = Modifier.matchParentSize().zIndex(3f),
+                color = piece.color,
+                onSelect = { promotion ->
+                    pendingPromotion = null
+                    animateMove(piece, targetPosition, promotion)
+                },
+                onDismiss = { pendingPromotion = null }
+            )
+        }
     }
 }
 
@@ -177,6 +213,12 @@ private fun ChessPiece.calculateMoveAnimation(
     ((targetPosition.column - this.position.column) * cellSize.width),
     ((targetPosition.row - this.position.row) * cellSize.height)
 )
+
+/** True if this is a pawn and [targetPosition] is on the last rank for its color. */
+private fun ChessPiece.isPromotingMove(targetPosition: Position): Boolean {
+    val lastRow = if (color == PieceColor.White) 0 else BOARD_SIZE - 1
+    return type == PieceType.Pawn && targetPosition.row == lastRow
+}
 
 private fun determineCellColor(
     selectedPiece: ChessPiece?,
