@@ -33,7 +33,7 @@ fun BoardScreen(
         ) {
             RenderChessBoard(
                 chessBoardState = uiState.board,
-                aiMoveSet = uiState.aiMove,
+                aiMoveSet = uiState.aiMove?.let { it.from to it.to },
                 isInputLocked = uiState.isInputLocked,
                 onAIMoveFinished = { from, to ->
                     chessBoardEvents(AiMoveFinished(from, to))

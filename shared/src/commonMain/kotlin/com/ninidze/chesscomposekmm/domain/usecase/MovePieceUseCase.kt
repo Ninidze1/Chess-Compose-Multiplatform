@@ -3,6 +3,7 @@ package com.ninidze.chesscomposekmm.domain.usecase
 import com.ninidze.chesscomposekmm.data.helper.Resource
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
+import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.util.Constants.GAME_ALREADY_FINISHED
 import com.ninidze.chesscomposekmm.util.Constants.INVALID_MOVE_MESSAGE
@@ -20,7 +21,8 @@ class MovePieceUseCase(private val checkGameEndUseCase: CheckGameEndUseCase) {
     operator fun invoke(
         chessBoard: ChessBoard,
         piece: ChessPiece,
-        targetPosition: Position
+        targetPosition: Position,
+        promotion: PieceType = PieceType.Queen
     ): Resource<ChessBoard> {
         if (chessBoard.isGameOver) {
             return Resource.Failure(GAME_ALREADY_FINISHED)
@@ -35,7 +37,7 @@ class MovePieceUseCase(private val checkGameEndUseCase: CheckGameEndUseCase) {
         }
 
         val movedBoard = chessBoard
-            .movePiece(boardPiece, targetPosition)
+            .movePiece(boardPiece, targetPosition, promotion)
             .copy(playerTurn = chessBoard.playerTurn.opposite())
         return Resource.Success(movedBoard.copy(result = checkGameEndUseCase(movedBoard)))
     }

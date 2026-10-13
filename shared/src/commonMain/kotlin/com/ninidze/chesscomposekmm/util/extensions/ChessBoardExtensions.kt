@@ -28,12 +28,18 @@ fun ChessBoard.isOccupiedByAlly(position: Position, color: PieceColor): Boolean 
  * instance taken from an older board never crashes the lookup. This is a raw board edit:
  * it performs no legality checks and does not switch the turn, because it is also used to
  * simulate hypothetical moves. Real moves go through MovePieceUseCase.
+ *
+ * [promotion] is the piece a pawn becomes when it reaches the last rank.
  */
-fun ChessBoard.movePiece(piece: ChessPiece, targetPosition: Position): ChessBoard {
+fun ChessBoard.movePiece(
+    piece: ChessPiece,
+    targetPosition: Position,
+    promotion: PieceType = PieceType.Queen
+): ChessBoard {
     val currentPosition = piece.position
     val pieceToMove = getPieceAtPosition(currentPosition) ?: piece
 
-    val updatedPiece = pieceToMove.movePieceTo(targetPosition)
+    val updatedPiece = pieceToMove.movePieceTo(targetPosition, promotion)
 
     val updatedCells = cells.mapIndexed { rowId, row ->
         row.mapIndexed { columnId, currentPiece ->

@@ -39,6 +39,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation("io.insert-koin:koin-core:3.4.2")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
                 implementation("com.russhwolf:multiplatform-settings-serialization:1.0.0")
@@ -62,11 +63,6 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-            }
-        }
-        val iosMain by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
             }
         }
     }

@@ -16,6 +16,8 @@ object Constants {
     const val ERROR_SAVING_BOARD = "Error saving board: "
     const val ERROR_CALCULATING_AI_MOVE = "Error calculating AI move: "
     const val AI_MOVE_REJECTED = "AI move rejected, using a fallback move instead of: "
+    const val ENGINE_SEARCH_FAILED = "Engine search failed: "
+    const val ENGINE_NO_MOVE = "Engine returned no usable move: "
 
     const val CHESS_BOARD_KEY = "chess_board"
 }

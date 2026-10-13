@@ -95,10 +95,15 @@ abstract class ChessPiece(
      * It returns a new instance of the same type of chess piece but at the new position.
      *
      * @param targetPosition The position to which the piece is to be moved.
+     * @param promotion The piece a pawn becomes when it reaches the last rank.
+     * Ignored by every other piece and by pawn moves that do not promote.
      * @return A new instance of the same type of chess piece but at the new position.
      * @throws RuntimeException If the type of the chess piece is unknown.
      */
-    open fun movePieceTo(targetPosition: Position) = when (this) {
+    open fun movePieceTo(
+        targetPosition: Position,
+        promotion: PieceType = PieceType.Queen
+    ): ChessPiece = when (this) {
         is Pawn -> Pawn(color, targetPosition)
         is King -> King(color, targetPosition)
         is Knight -> Knight(color, targetPosition)

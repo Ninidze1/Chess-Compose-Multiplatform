@@ -1,8 +1,10 @@
 package com.ninidze.chesscomposekmm.presentation
 
 import com.ninidze.chesscomposekmm.data.helper.Resource
+import com.ninidze.chesscomposekmm.domain.model.AiMove
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.PieceColor
+import com.ninidze.chesscomposekmm.domain.model.PieceType
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import com.ninidze.chesscomposekmm.domain.usecase.LoadBoardUseCase
@@ -17,6 +19,7 @@ import com.ninidze.chesscomposekmm.util.Constants.AI_MOVE_REJECTED
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_CALCULATING_AI_MOVE
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_LOADING_BOARD
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_SAVING_BOARD
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -162,7 +165,9 @@ class ChessViewModel(
         delay(AI_MOVE_DELAY_MS)
         if (version != boardVersion) return
 
+        // Suspends while the search runs off the main thread.
         val aiMove = calculateAiMove(board)
+        if (version != boardVersion) return
         if (aiMove == null) {
             // Unreachable while the game is ongoing: the side to move has a legal move.
             _uiState.update { it.copy(isAiThinking = false) }
@@ -181,14 +186,20 @@ class ChessViewModel(
     }
 
     private fun onAiMoveAnimated(from: Position, to: Position) {
-        if (_uiState.value.aiMove != (from to to)) return
+        val aiMove = _uiState.value.aiMove ?: return
+        if (aiMove.from != from || aiMove.to != to) return
         aiAnimationDone?.complete(Unit)
     }
 
-    /** Asks the engine for a move, falling back to a legal app move if it is unusable. */
-    private fun calculateAiMove(board: ChessBoard): Pair<Position, Position>? {
+    /**
+     * Asks the AI for a move, falling back to a legal app move if the AI finds none or
+     * the app's rules reject it, so the game never stalls on the AI's turn.
+     */
+    private suspend fun calculateAiMove(board: ChessBoard): AiMove? {
         val engineMove = try {
             calculateBotMoveUseCase(board)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             println(ERROR_CALCULATING_AI_MOVE + e.message)
             null
@@ -200,19 +211,24 @@ class ChessViewModel(
             .filterNotNull()
             .filter { it.color == AI_COLOR }
             .firstNotNullOfOrNull { piece ->
-                piece.getAvailableMoves(board).firstOrNull()?.let { piece.position to it }
+                piece.getAvailableMoves(board).firstOrNull()?.let { AiMove(piece.position, it) }
             }
     }
 
     // Applies the animated AI move after re-validating it against the current board.
-    private suspend fun moveAI(aiMove: Pair<Position, Position>) {
+    private suspend fun moveAI(aiMove: AiMove) {
         val board = _uiState.value.board
         if (!isLegalAiMove(board, aiMove)) {
             _uiState.update { it.copy(aiMove = null, isAiThinking = false) }
             return
         }
-        val piece = board.getPieceAtPosition(aiMove.first) ?: return
-        val result = movePieceUseCase(board, piece, aiMove.second)
+        val piece = board.getPieceAtPosition(aiMove.from) ?: return
+        val result = movePieceUseCase(
+            chessBoard = board,
+            piece = piece,
+            targetPosition = aiMove.to,
+            promotion = aiMove.promotion ?: PieceType.Queen
+        )
         if (result !is Resource.Success) {
             _uiState.update { it.copy(aiMove = null, isAiThinking = false) }
             return
@@ -221,7 +237,7 @@ class ChessViewModel(
         saveBoard(result.data)
     }
 
-    private fun isLegalAiMove(board: ChessBoard, move: Pair<Position, Position>): Boolean {
+    private fun isLegalAiMove(board: ChessBoard, move: AiMove): Boolean {
         val (from, to) = move
         if (!from.isValidPosition() || !to.isValidPosition()) return false
         if (!isAiTurn(board)) return false

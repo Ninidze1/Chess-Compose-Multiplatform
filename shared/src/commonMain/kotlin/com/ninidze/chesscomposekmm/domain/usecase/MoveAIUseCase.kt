@@ -1,30 +1,16 @@
 package com.ninidze.chesscomposekmm.domain.usecase
 
-import com.ninidze.chesscomposekmm.data.helper.Resource
-import com.ninidze.chesscomposekmm.domain.engine.Move
-import com.ninidze.chesscomposekmm.domain.engine.search.SearchEngine
+import com.ninidze.chesscomposekmm.domain.ai.ChessAi
+import com.ninidze.chesscomposekmm.domain.model.AiMove
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
-import com.ninidze.chesscomposekmm.domain.model.Position
-import com.ninidze.chesscomposekmm.util.Constants.INVALID_MOVE_MESSAGE
-import com.ninidze.chesscomposekmm.util.Constants.PIECE_NOT_FOUND
-import com.ninidze.chesscomposekmm.util.FenConverter
-import com.ninidze.chesscomposekmm.util.extensions.movePiece
-import com.ninidze.chesscomposekmm.util.extensions.toPosition
 
-class MoveAIUseCase(
-    private val chessBoardConverter: FenConverter,
-    private val engine: SearchEngine
-) {
-    operator fun invoke(chessBoard: ChessBoard): Pair<Position, Position> {
-        return calculateBotMove(chessBoard).toPosition()
-    }
-
-    private fun calculateBotMove(chessBoard: ChessBoard): String {
-        engine.board.setupWithFen(
-            engine = engine,
-            fen = chessBoardConverter.convertToFen(chessBoard)
-        )
-        return Move.toString(engine.bestMove)
-    }
-
+/**
+ * Asks the [ChessAi] for a move for the side to move. The search runs off the calling thread.
+ *
+ * @return The AI's move, or null if it found none. The move is not validated against the
+ * app's rules; the caller must check it before applying it.
+ */
+class MoveAIUseCase(private val chessAi: ChessAi) {
+    suspend operator fun invoke(chessBoard: ChessBoard): AiMove? =
+        chessAi.findBestMove(chessBoard)
 }
