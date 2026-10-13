@@ -61,6 +61,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
+            // Core Settings types (ObservableSettings) and opt-in markers, which the coroutines
+            // and test artifacts only expose at runtime.
+            implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.coroutines)
         }
         androidMain.dependencies {
