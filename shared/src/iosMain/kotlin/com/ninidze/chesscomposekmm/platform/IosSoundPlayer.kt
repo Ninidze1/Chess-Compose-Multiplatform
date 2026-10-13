@@ -3,6 +3,7 @@ package com.ninidze.chesscomposekmm.platform
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import com.ninidze.chesscomposekmm.domain.sound.SoundPlayer
 import com.ninidze.chesscomposekmm.resources.Res
+import kotlinx.cinterop.ExperimentalForeignApi
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import platform.AVFAudio.AVAudioPlayer
 import platform.AVFAudio.AVAudioSession
@@ -16,6 +17,7 @@ import platform.Foundation.NSURL
  * The audio session uses the Ambient category, configured once: sounds respect the
  * silent switch and mix with other apps' audio instead of interrupting it.
  */
+@OptIn(ExperimentalForeignApi::class)
 class IosSoundPlayer : SoundPlayer {
 
     private val players: Map<ActionType, AVAudioPlayer>
