@@ -52,11 +52,7 @@ sealed class ChessBoardEvents {
         val promotion: PieceType? = null
     ) : ChessBoardEvents()
 
-    // A plain object with the toString a data object would generate: `data object` needs
-    // Kotlin 1.9, and the project is on Kotlin 1.8.20.
-    object OnGameRestart : ChessBoardEvents() {
-        override fun toString(): String = "OnGameRestart"
-    }
+    data object OnGameRestart : ChessBoardEvents()
 
     /** The UI finished animating the pending AI move [from] -> [to]. */
     data class AiMoveFinished(val from: Position, val to: Position) : ChessBoardEvents()
