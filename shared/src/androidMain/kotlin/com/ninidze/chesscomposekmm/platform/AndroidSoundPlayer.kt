@@ -1,11 +1,14 @@
 package com.ninidze.chesscomposekmm.platform
 
 import android.content.Context
+import android.content.res.AssetManager
 import android.media.AudioAttributes
 import android.media.SoundPool
-import com.ninidze.chesscomposekmm.R
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import com.ninidze.chesscomposekmm.domain.sound.SoundPlayer
+import com.ninidze.chesscomposekmm.resources.Res
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -35,9 +38,23 @@ class AndroidSoundPlayer(context: Context) : SoundPlayer {
         soundPool.setOnLoadCompleteListener { _, sampleId, status ->
             if (status == LOAD_SUCCESS) loadedSamples += sampleId
         }
-        val appContext = context.applicationContext
-        sampleIds = ActionType.values().associateWith { actionType ->
-            soundPool.load(appContext, actionType.rawResource(), SOUND_PRIORITY)
+        val assets = context.applicationContext.assets
+        sampleIds = ActionType.values()
+            .mapNotNull { actionType -> loadSample(assets, actionType)?.let { actionType to it } }
+            .toMap()
+    }
+
+    /**
+     * Loads the clip from the Compose resources, which the Android build packages as assets.
+     * MP3 files are stored uncompressed, so they can be opened as a file descriptor.
+     */
+    @OptIn(ExperimentalResourceApi::class)
+    private fun loadSample(assets: AssetManager, actionType: ActionType): Int? {
+        val assetPath = Res.getUri(actionType.soundResourcePath()).removePrefix(ASSET_URI_PREFIX)
+        return try {
+            assets.openFd(assetPath).use { descriptor -> soundPool.load(descriptor, SOUND_PRIORITY) }
+        } catch (e: IOException) {
+            null
         }
     }
 
@@ -48,16 +65,8 @@ class AndroidSoundPlayer(context: Context) : SoundPlayer {
         soundPool.play(sampleId, FULL_VOLUME, FULL_VOLUME, SOUND_PRIORITY, NO_LOOP, NORMAL_RATE)
     }
 
-    private fun ActionType.rawResource(): Int = when (this) {
-        ActionType.MOVE -> R.raw.move_self
-        ActionType.CAPTURE -> R.raw.capture
-        ActionType.FINISH -> R.raw.game_end
-        ActionType.MOVE_CHECK -> R.raw.move_check
-        ActionType.PROMOTION -> R.raw.promote
-        ActionType.START -> R.raw.notify
-    }
-
     private companion object {
+        const val ASSET_URI_PREFIX = "file:///android_asset/"
         const val MAX_STREAMS = 2
         const val SOUND_PRIORITY = 1
         const val LOAD_SUCCESS = 0

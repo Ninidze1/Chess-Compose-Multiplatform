@@ -41,7 +41,7 @@ class IosSoundPlayer : SoundPlayer {
     private fun loadPlayer(actionType: ActionType): AVAudioPlayer? {
         // The clips are Compose resources (commonMain/composeResources/files/sounds), which
         // the Compose plugin copies into the app bundle through the pod.
-        val uri = Res.getUri("$SOUND_DIRECTORY/${actionType.soundFileName()}.$SOUND_FILE_TYPE")
+        val uri = Res.getUri(actionType.soundResourcePath())
         val url = if (uri.startsWith(FILE_SCHEME)) NSURL.URLWithString(uri) else NSURL.fileURLWithPath(uri)
         if (url == null) return null
         val player = AVAudioPlayer(contentsOfURL = url, error = null)
@@ -49,20 +49,7 @@ class IosSoundPlayer : SoundPlayer {
         return player
     }
 
-    // Must match the file names in commonMain/composeResources/files/sounds (and
-    // androidMain/res/raw).
-    private fun ActionType.soundFileName(): String = when (this) {
-        ActionType.MOVE -> "move_self"
-        ActionType.CAPTURE -> "capture"
-        ActionType.FINISH -> "game_end"
-        ActionType.MOVE_CHECK -> "move_check"
-        ActionType.PROMOTION -> "promote"
-        ActionType.START -> "notify"
-    }
-
     private companion object {
-        const val SOUND_DIRECTORY = "files/sounds"
-        const val SOUND_FILE_TYPE = "mp3"
         const val FILE_SCHEME = "file:"
     }
 }
