@@ -2,8 +2,6 @@ package com.ninidze.chesscomposekmm.android.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ninidze.chesscomposekmm.domain.model.ChessBoard
-import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.usecase.LoadBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MoveAIUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
@@ -11,6 +9,7 @@ import com.ninidze.chesscomposekmm.domain.usecase.SaveBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.StartGameUseCase
 import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents
+import com.ninidze.chesscomposekmm.presentation.ChessUiState
 import com.ninidze.chesscomposekmm.presentation.ChessViewModel
 import kotlinx.coroutines.flow.StateFlow
 
@@ -34,8 +33,7 @@ class AndroidChessViewModel(
             coroutineScope = viewModelScope
         )
     }
-    val chessBoardState: StateFlow<ChessBoard> = viewModel.chessBoardState
-    val aiMoveSet: StateFlow<Pair<Position, Position>?> = viewModel.aiMoveSet
+    val uiState: StateFlow<ChessUiState> = viewModel.uiState
 
     fun onEvent(event: ChessBoardEvents) {
         viewModel.onEvent(event)

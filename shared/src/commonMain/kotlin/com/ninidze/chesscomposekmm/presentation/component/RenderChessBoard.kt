@@ -10,11 +10,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,10 +25,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.zIndex
 import com.ninidze.chesscomposekmm.domain.base.ChessPiece
-import com.ninidze.chesscomposekmm.domain.engine.Piece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
-import com.ninidze.chesscomposekmm.domain.model.PieceColor
-import com.ninidze.chesscomposekmm.domain.model.PieceColor.Black
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.presentation.theme.ActiveCell
 import com.ninidze.chesscomposekmm.presentation.theme.BoardBlack
@@ -38,29 +36,74 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/**
+ * Renders the board and reports moves by position.
+ *
+ * @param isInputLocked When true, pieces cannot be selected or moved (AI pending, loading, game over).
+ * @param onPieceMove Called with (from, to) once the user's move has been animated.
+ * @param onAIMoveFinished Called with the [aiMoveSet] (from, to) once it has been animated.
+ */
 @Composable
 fun RenderChessBoard(
     chessBoardState: ChessBoard,
     aiMoveSet: Pair<Position, Position>?,
+    isInputLocked: Boolean,
     composableScope: CoroutineScope = rememberCoroutineScope(),
-    onPieceMove: (ChessPiece, Position) -> Unit,
-    onAIMoveFinished : () -> Unit
+    onPieceMove: (Position, Position) -> Unit,
+    onAIMoveFinished: (Position, Position) -> Unit
 ) {
     var cellSize by remember { mutableStateOf(IntSize(0, 0)) }
-    val selectedPiece = remember { mutableStateOf<ChessPiece?>(null) }
+    // The selection is a square, resolved on the current board, and is dropped when the board changes.
+    var selectedPosition by remember(chessBoardState) { mutableStateOf<Position?>(null) }
     var pieceOffsets by remember { mutableStateOf<Map<ChessPiece, IntOffset>>(emptyMap()) }
+    // True while the user's own move is being animated, before it is sent to the ViewModel.
+    var isAnimatingMove by remember { mutableStateOf(false) }
 
-    if (aiMoveSet != null) {
-        chessBoardState.getPieceAtPosition(aiMoveSet.first)?.let { piece ->
-            val targetPosition = aiMoveSet.second
-            pieceOffsets =
-                pieceOffsets + (piece to piece.calculateMoveAnimation(
-                    targetPosition = targetPosition,
-                    cellSize = cellSize
-                ))
-            composableScope.launch {
+    val currentBoard by rememberUpdatedState(chessBoardState)
+    val currentOnPieceMove by rememberUpdatedState(onPieceMove)
+    val currentOnAIMoveFinished by rememberUpdatedState(onAIMoveFinished)
+
+    val isLocked = isInputLocked || isAnimatingMove
+    val selectedPiece: ChessPiece? = if (isLocked) {
+        null
+    } else {
+        selectedPosition
+            ?.let { chessBoardState.getPieceAtPosition(it) }
+            ?.takeIf { it.color == chessBoardState.playerTurn }
+    }
+
+    // Runs once per published AI move.
+    LaunchedEffect(aiMoveSet) {
+        val aiMove = aiMoveSet ?: return@LaunchedEffect
+        chessBoardState.getPieceAtPosition(aiMove.first)?.let { piece ->
+            pieceOffsets = pieceOffsets + (piece to piece.calculateMoveAnimation(
+                targetPosition = aiMove.second,
+                cellSize = cellSize
+            ))
+            delay(ANIMATION_DURATION_MS)
+        }
+        currentOnAIMoveFinished(aiMove.first, aiMove.second)
+    }
+
+    val startMove: (ChessPiece, Position) -> Unit = startMove@{ piece, targetPosition ->
+        if (isInputLocked || isAnimatingMove) return@startMove
+        val boardAtStart = chessBoardState
+        val fromPosition = piece.position
+        isAnimatingMove = true
+        selectedPosition = null
+        pieceOffsets = pieceOffsets + (piece to piece.calculateMoveAnimation(
+            targetPosition = targetPosition,
+            cellSize = cellSize
+        ))
+        composableScope.launch {
+            try {
                 delay(ANIMATION_DURATION_MS)
-                onAIMoveFinished.invoke()
+                // Drop the move if the board was replaced (restart, load) meanwhile.
+                if (currentBoard === boardAtStart) {
+                    currentOnPieceMove(fromPosition, targetPosition)
+                }
+            } finally {
+                isAnimatingMove = false
             }
         }
     }
@@ -73,26 +116,16 @@ fun RenderChessBoard(
                     row.forEachIndexed { columnIndex, _ ->
                         val currentPosition = Position(rowIndex, columnIndex)
                         val cellColor = determineCellColor(
-                            selectedPiece.value, currentPosition, chessBoardState
+                            selectedPiece, currentPosition, chessBoardState
                         )
                         Box(modifier = Modifier.weight(1f)
                             .onSizeChanged { if (cellSize.width == 0) cellSize = it }
                             .aspectRatio(1f).background(cellColor),
                             contentAlignment = Alignment.Center) {
-                            DrawAvailableMoves(selectedPiece = selectedPiece.value,
+                            DrawAvailableMoves(selectedPiece = selectedPiece,
                                 currentPosition = currentPosition,
                                 chessBoard = chessBoardState,
-                                onPieceMove = { chessPiece, targetPosition ->
-                                    pieceOffsets =
-                                        pieceOffsets + (chessPiece to chessPiece.calculateMoveAnimation(
-                                            targetPosition = targetPosition, cellSize = cellSize
-                                        ))
-                                    composableScope.launch {
-                                        delay(ANIMATION_DURATION_MS)
-                                        onPieceMove.invoke(chessPiece, targetPosition)
-                                    }
-                                    selectedPiece.value = null
-                                })
+                                onPieceMove = startMove)
                         }
                     }
                 }
@@ -120,21 +153,14 @@ fun RenderChessBoard(
                                         .fillMaxSize(),
                                     piece = currentPiece,
                                     onPieceClick = {
-                                        if (chessBoardState.isGameOver) return@PieceView
-                                        handlePieceClick(selectedPiece = selectedPiece,
+                                        if (isInputLocked || isAnimatingMove) return@PieceView
+                                        handlePieceClick(
+                                            selectedPiece = selectedPiece,
                                             chessBoardState = chessBoardState,
                                             currentPiece = currentPiece,
-                                            onPieceMove = Piece@{ targetPosition ->
-                                                pieceOffsets =
-                                                    pieceOffsets + (this to this.calculateMoveAnimation(
-                                                        targetPosition = targetPosition,
-                                                        cellSize = cellSize
-                                                    ))
-                                                composableScope.launch CoroutineScope@{
-                                                    delay(ANIMATION_DURATION_MS)
-                                                    onPieceMove.invoke(this@Piece, targetPosition)
-                                                }
-                                            })
+                                            onSelect = { selectedPosition = it },
+                                            onPieceMove = startMove
+                                        )
                                     })
                             }
                         }
@@ -144,6 +170,7 @@ fun RenderChessBoard(
         }
     }
 }
+
 private fun ChessPiece.calculateMoveAnimation(
     targetPosition: Position, cellSize: IntSize
 ) = IntOffset(
@@ -174,19 +201,19 @@ private fun determineCellColor(
 }
 
 private fun handlePieceClick(
-    selectedPiece: MutableState<ChessPiece?>,
+    selectedPiece: ChessPiece?,
     chessBoardState: ChessBoard,
     currentPiece: ChessPiece,
-    onPieceMove: ChessPiece.(Position) -> Unit
+    onSelect: (Position) -> Unit,
+    onPieceMove: (ChessPiece, Position) -> Unit
 ) {
-    val isCapturable = selectedPiece.value?.let { piece ->
+    val isCapturable = selectedPiece?.let { piece ->
         chessBoardState.isOccupiedByOpponent(currentPiece.position, piece.color) &&
                 piece.getAvailableMoves(chessBoardState).contains(currentPiece.position)
     } ?: false
-    if (selectedPiece.value != null && currentPiece.color != selectedPiece.value?.color && isCapturable) {
-        selectedPiece.value?.let { onPieceMove.invoke(it, currentPiece.position) }
-        selectedPiece.value = null
+    if (selectedPiece != null && isCapturable) {
+        onPieceMove(selectedPiece, currentPiece.position)
     } else if (currentPiece.color == chessBoardState.playerTurn) {
-        selectedPiece.value = currentPiece
+        onSelect(currentPiece.position)
     }
 }

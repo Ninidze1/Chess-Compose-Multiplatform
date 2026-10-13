@@ -1,8 +1,8 @@
 package com.ninidze.chesscomposekmm.presentation
 
 import com.ninidze.chesscomposekmm.data.helper.Resource
-import com.ninidze.chesscomposekmm.domain.base.ChessPiece
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
+import com.ninidze.chesscomposekmm.domain.model.PieceColor
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.movement.ActionType
 import com.ninidze.chesscomposekmm.domain.usecase.LoadBoardUseCase
@@ -11,20 +11,35 @@ import com.ninidze.chesscomposekmm.domain.usecase.MovePieceUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.SaveBoardUseCase
 import com.ninidze.chesscomposekmm.domain.usecase.StartGameUseCase
 import com.ninidze.chesscomposekmm.platform.ChessMediaPlayer
+import com.ninidze.chesscomposekmm.util.Constants.AI_ANIMATION_TIMEOUT_MS
+import com.ninidze.chesscomposekmm.util.Constants.AI_MOVE_DELAY_MS
+import com.ninidze.chesscomposekmm.util.Constants.AI_MOVE_REJECTED
+import com.ninidze.chesscomposekmm.util.Constants.ERROR_CALCULATING_AI_MOVE
 import com.ninidze.chesscomposekmm.util.Constants.ERROR_LOADING_BOARD
+import com.ninidze.chesscomposekmm.util.Constants.ERROR_SAVING_BOARD
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.withTimeoutOrNull
 
 sealed class ChessBoardEvents {
-    data class OnPieceMove(val piece: ChessPiece, val position: Position) : ChessBoardEvents()
+    /** The user moved the piece standing on [from] to [to]. */
+    data class OnPieceMove(val from: Position, val to: Position) : ChessBoardEvents()
     object OnGameRestart : ChessBoardEvents()
-    object AiMoveFinished : ChessBoardEvents()
+
+    /** The UI finished animating the pending AI move [from] -> [to]. */
+    data class AiMoveFinished(val from: Position, val to: Position) : ChessBoardEvents()
 }
 
 class ChessViewModel(
@@ -39,97 +54,226 @@ class ChessViewModel(
 
     private val viewModelScope = coroutineScope ?: CoroutineScope(Dispatchers.Main)
 
-    private val _chessBoardState = MutableStateFlow(startGameUseCase())
-    val chessBoardState: StateFlow<ChessBoard> = _chessBoardState
+    // The placeholder board is shown (locked) until the saved game is loaded; it plays no sound.
+    private val _uiState = MutableStateFlow(
+        ChessUiState(
+            board = ChessBoard.createInitialChessBoard(),
+            isLoading = true,
+            humanColor = HUMAN_COLOR
+        )
+    )
+    val uiState: StateFlow<ChessUiState> = _uiState.asStateFlow()
 
-    private val _aiMoveSet = MutableStateFlow<Pair<Position, Position>?>(null)
-    val aiMoveSet: StateFlow<Pair<Position, Position>?> = _aiMoveSet
+    private var loadJob: Job? = null
+
+    // The running turn: the human move, then the AI's thinking, animation and move.
+    private var turnJob: Job? = null
+
+    // Completed by the UI when the pending AI move has been animated.
+    private var aiAnimationDone: CompletableDeferred<Unit>? = null
+
+    // Incremented on every board replacement, so a delayed AI result can tell whether
+    // the board it was computed for is still the current one.
+    private var boardVersion = 0L
 
     init { loadBoard() }
 
     fun onEvent(event: ChessBoardEvents) {
         when (event) {
-            is ChessBoardEvents.OnGameRestart -> {
-                _aiMoveSet.value = null
-                val initialBoard = startGameUseCase()
-                _chessBoardState.value = initialBoard
-                saveBoard(initialBoard)
-            }
-
-            is ChessBoardEvents.OnPieceMove -> {
-                movePiece(event.piece, event.position)
-            }
-
-            is ChessBoardEvents.AiMoveFinished -> {
-                moveAI(_aiMoveSet.value ?: return)
-            }
+            is ChessBoardEvents.OnGameRestart -> restartGame()
+            is ChessBoardEvents.OnPieceMove -> onHumanMove(event.from, event.to)
+            is ChessBoardEvents.AiMoveFinished -> onAiMoveAnimated(event.from, event.to)
         }
     }
 
     private fun loadBoard() {
-        viewModelScope.launch {
-            val result = loadBoardUseCase.invoke()
-            if (result is Resource.Success) {
-                _chessBoardState.value = result.data.first()
-            } else if (result is Resource.Failure) {
-                println(ERROR_LOADING_BOARD + result.message)
+        loadJob?.cancel()
+        cancelTurn()
+        _uiState.update { it.copy(isLoading = true) }
+        loadJob = viewModelScope.launch {
+            val result = loadBoardUseCase()
+            // loadBoardUseCase swallows cancellation (safeCall), so check it here explicitly.
+            currentCoroutineContext().ensureActive()
+            val board = when (result) {
+                is Resource.Success -> result.data.first()
+                is Resource.Failure -> {
+                    println(ERROR_LOADING_BOARD + result.message)
+                    startGameUseCase()
+                }
+            }
+            val version = replaceBoard(board, isLoading = false)
+            // A game saved while the AI was to move resumes with the AI's move.
+            if (isAiTurn(board)) {
+                turnJob = viewModelScope.launch { playAiTurn(board, version) }
             }
         }
     }
 
-    private fun saveBoard(chessBoard: ChessBoard) {
-        viewModelScope.launch {
-            val result = saveBoardUseCase(chessBoard)
-            if (result is Resource.Success) {
-                println("ChessViewModel: Board saved")
-            } else if (result is Resource.Failure) {
-                return@launch
+    private fun restartGame() {
+        // The load would overwrite the new game, and the board is locked until it finishes.
+        if (_uiState.value.isLoading) return
+        cancelTurn()
+        val initialBoard = startGameUseCase()
+        replaceBoard(initialBoard)
+        viewModelScope.launch { saveBoard(initialBoard) }
+    }
+
+    private fun onHumanMove(from: Position, to: Position) {
+        if (_uiState.value.isInputLocked) return
+        cancelTurn()
+        // UNDISPATCHED applies the human move before this call returns, so the board (and
+        // with it the input lock) is updated before the next UI event can be handled.
+        turnJob = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            playTurn(from, to)
+        }
+    }
+
+    /**
+     * The whole turn as one sequential pipeline: apply the human move, stop if the game
+     * is over, otherwise let the AI answer if it is its turn.
+     */
+    private suspend fun playTurn(from: Position, to: Position) {
+        val board = _uiState.value.board
+        if (board.isGameOver || board.playerTurn != HUMAN_COLOR) return
+        val piece = board.getPieceAtPosition(from)
+            ?.takeIf { it.color == HUMAN_COLOR }
+            ?: return
+
+        val result = movePieceUseCase(board, piece, to)
+        if (result !is Resource.Success) return
+        val movedBoard = result.data
+        val version = applyMove(movedBoard)
+        saveBoard(movedBoard)
+        // saveBoard swallows cancellation (safeCall), so check it here explicitly.
+        currentCoroutineContext().ensureActive()
+
+        if (movedBoard.isGameOver) return
+        if (isAiTurn(movedBoard)) playAiTurn(movedBoard, version)
+    }
+
+    /**
+     * Computes the AI's move for [board], publishes it for the UI to animate, waits for
+     * the animation and applies it. [version] is the [boardVersion] [board] belongs to.
+     */
+    private suspend fun playAiTurn(board: ChessBoard, version: Long) {
+        if (version != boardVersion || !isAiTurn(board)) return
+        _uiState.update { it.copy(isAiThinking = true) }
+
+        delay(AI_MOVE_DELAY_MS)
+        if (version != boardVersion) return
+
+        val aiMove = calculateAiMove(board)
+        if (aiMove == null) {
+            // Unreachable while the game is ongoing: the side to move has a legal move.
+            _uiState.update { it.copy(isAiThinking = false) }
+            return
+        }
+
+        val animationDone = CompletableDeferred<Unit>()
+        aiAnimationDone = animationDone
+        _uiState.update { it.copy(aiMove = aiMove) }
+        // Apply the move even if no UI is attached to report the end of the animation.
+        withTimeoutOrNull(AI_ANIMATION_TIMEOUT_MS) { animationDone.await() }
+        aiAnimationDone = null
+        if (version != boardVersion) return
+
+        moveAI(aiMove)
+    }
+
+    private fun onAiMoveAnimated(from: Position, to: Position) {
+        if (_uiState.value.aiMove != (from to to)) return
+        aiAnimationDone?.complete(Unit)
+    }
+
+    /** Asks the engine for a move, falling back to a legal app move if it is unusable. */
+    private fun calculateAiMove(board: ChessBoard): Pair<Position, Position>? {
+        val engineMove = try {
+            calculateBotMoveUseCase(board)
+        } catch (e: Exception) {
+            println(ERROR_CALCULATING_AI_MOVE + e.message)
+            null
+        }
+        if (engineMove != null && isLegalAiMove(board, engineMove)) return engineMove
+
+        println(AI_MOVE_REJECTED + engineMove)
+        return board.cells.flatten()
+            .filterNotNull()
+            .filter { it.color == AI_COLOR }
+            .firstNotNullOfOrNull { piece ->
+                piece.getAvailableMoves(board).firstOrNull()?.let { piece.position to it }
             }
-        }
     }
 
-    // After AI move is calculated, animation starts
-    private fun calculateAiMove() {
-        viewModelScope.launch {
-            if (_chessBoardState.value.isGameOver) return@launch
-            val aiMove = calculateBotMoveUseCase(_chessBoardState.value)
-            val piece = _chessBoardState.value.getPieceAtPosition(aiMove.first)
-            val targetPosition = aiMove.second
-            if (piece == null) return@launch
-            if (!piece.isValidMove(_chessBoardState.value, targetPosition)) return@launch
-
-            delay(1.seconds)
-            _aiMoveSet.apply { value = aiMove }
+    // Applies the animated AI move after re-validating it against the current board.
+    private suspend fun moveAI(aiMove: Pair<Position, Position>) {
+        val board = _uiState.value.board
+        if (!isLegalAiMove(board, aiMove)) {
+            _uiState.update { it.copy(aiMove = null, isAiThinking = false) }
+            return
         }
+        val piece = board.getPieceAtPosition(aiMove.first) ?: return
+        val result = movePieceUseCase(board, piece, aiMove.second)
+        if (result !is Resource.Success) {
+            _uiState.update { it.copy(aiMove = null, isAiThinking = false) }
+            return
+        }
+        applyMove(result.data)
+        saveBoard(result.data)
     }
 
-    // After animation is finished, this function is called, and Board is updated
-    private fun moveAI(aiMoveSet: Pair<Position, Position>) {
-        _aiMoveSet.value = null
-        val board = _chessBoardState.value
-        val piece = board.getPieceAtPosition(aiMoveSet.first) ?: return
-        val result = movePieceUseCase(board, piece, aiMoveSet.second)
-        if (result is Resource.Success) {
-            onMoveApplied(result.data)
-        }
+    private fun isLegalAiMove(board: ChessBoard, move: Pair<Position, Position>): Boolean {
+        val (from, to) = move
+        if (!from.isValidPosition() || !to.isValidPosition()) return false
+        if (!isAiTurn(board)) return false
+        val piece = board.getPieceAtPosition(from) ?: return false
+        return piece.color == AI_COLOR && piece.isValidMove(board, to)
     }
 
-    private fun movePiece(piece: ChessPiece, targetPosition: Position) {
-        viewModelScope.launch {
-            val result = movePieceUseCase(_chessBoardState.value, piece, targetPosition)
-            if (result is Resource.Success) {
-                onMoveApplied(result.data)
-                if (!result.data.isGameOver) calculateAiMove()
-            } else if (result is Resource.Failure) return@launch
-        }
-    }
+    private fun isAiTurn(board: ChessBoard): Boolean =
+        !board.isGameOver && board.playerTurn == AI_COLOR
 
     // The domain move has already switched the turn and evaluated the game result
-    private fun onMoveApplied(updatedBoard: ChessBoard) {
-        _chessBoardState.value = updatedBoard
+    private fun applyMove(updatedBoard: ChessBoard): Long {
+        val version = replaceBoard(updatedBoard)
         mediaPlayer.playSound(
             if (updatedBoard.isGameOver) ActionType.FINISH else ActionType.MOVE
         )
-        saveBoard(updatedBoard)
+        return version
+    }
+
+    /**
+     * Makes [board] the current board and clears any pending AI move.
+     * Returns the new [boardVersion].
+     */
+    private fun replaceBoard(board: ChessBoard, isLoading: Boolean = false): Long {
+        boardVersion++
+        _uiState.update {
+            it.copy(
+                board = board,
+                aiMove = null,
+                isAiThinking = false,
+                isLoading = isLoading
+            )
+        }
+        return boardVersion
+    }
+
+    private fun cancelTurn() {
+        turnJob?.cancel()
+        turnJob = null
+        aiAnimationDone = null
+        _uiState.update { it.copy(aiMove = null, isAiThinking = false) }
+    }
+
+    private suspend fun saveBoard(chessBoard: ChessBoard) {
+        val result = saveBoardUseCase(chessBoard)
+        if (result is Resource.Failure) {
+            println(ERROR_SAVING_BOARD + result.message)
+        }
+    }
+
+    private companion object {
+        val HUMAN_COLOR = PieceColor.White
+        val AI_COLOR = PieceColor.Black
     }
 }

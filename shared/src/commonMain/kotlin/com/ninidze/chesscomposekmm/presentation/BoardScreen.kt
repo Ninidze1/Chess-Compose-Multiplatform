@@ -6,8 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ninidze.chesscomposekmm.domain.model.ChessBoard
-import com.ninidze.chesscomposekmm.domain.model.Position
+import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.AiMoveFinished
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.OnGameRestart
 import com.ninidze.chesscomposekmm.presentation.ChessBoardEvents.OnPieceMove
 import com.ninidze.chesscomposekmm.presentation.component.RenderChessBoard
@@ -18,8 +17,7 @@ import org.jetbrains.compose.resources.ExperimentalResourceApi
 @OptIn(ExperimentalResourceApi::class)
 @Composable
 fun BoardScreen(
-    chessBoardState: ChessBoard,
-    aiMoveSet: Pair<Position, Position>?,
+    uiState: ChessUiState,
     chessBoardEvents: (ChessBoardEvents) -> Unit
 ) {
     Box(
@@ -34,21 +32,20 @@ fun BoardScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             RenderChessBoard(
-                chessBoardState = chessBoardState,
-                aiMoveSet = aiMoveSet,
-                onAIMoveFinished = {
-                    chessBoardEvents(ChessBoardEvents.AiMoveFinished)
+                chessBoardState = uiState.board,
+                aiMoveSet = uiState.aiMove,
+                isInputLocked = uiState.isInputLocked,
+                onAIMoveFinished = { from, to ->
+                    chessBoardEvents(AiMoveFinished(from, to))
                 },
-                onPieceMove = { piece, position ->
-                    chessBoardEvents(
-                        OnPieceMove(piece, position)
-                    )
+                onPieceMove = { from, to ->
+                    chessBoardEvents(OnPieceMove(from, to))
                 }
             )
             Spacer(modifier = Modifier.height(24.dp))
 
             RestartButton(
-                isVisible = chessBoardState.isGameOver,
+                isVisible = uiState.board.isGameOver && !uiState.isLoading,
                 onRestartClick = { chessBoardEvents(OnGameRestart) }
             )
         }
