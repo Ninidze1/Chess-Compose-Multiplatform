@@ -14,9 +14,7 @@ class DiagonalMoveStrategy : MoveStrategy {
         Position(-1, 1)
     )
 
-    override fun getMoves(piece: ChessPiece, chessBoard: ChessBoard): List<Position> {
-        return directions.flatMap { direction ->
-            chessBoard.getLineMoves(piece, direction)
-        }
+    override fun getMoves(piece: ChessPiece, chessBoard: ChessBoard): List<Position> = directions.flatMap { direction ->
+        chessBoard.getLineMoves(piece, direction)
     }
 }

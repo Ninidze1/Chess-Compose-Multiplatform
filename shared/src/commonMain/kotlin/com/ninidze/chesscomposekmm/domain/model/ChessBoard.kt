@@ -10,12 +10,34 @@ import com.ninidze.chesscomposekmm.domain.pieces.Pawn
 import com.ninidze.chesscomposekmm.domain.pieces.Queen
 import com.ninidze.chesscomposekmm.domain.pieces.Rook
 import com.ninidze.chesscomposekmm.util.Constants.BOARD_SIZE
+import com.ninidze.chesscomposekmm.util.extensions.positionKey
 
+/**
+ * @property castlingRights The castling moves each side may still make.
+ * @property enPassantTarget The square a pawn just skipped with a two-square advance, which
+ * an opposing pawn may capture onto this move; null otherwise.
+ * @property halfmoveClock Half-moves since the last capture or pawn move (50-move rule).
+ * @property fullmoveNumber Starts at 1 and is incremented after every Black move.
+ * @property positionHistory Repetition keys ([positionKey]) of the positions reached since
+ * the last capture or pawn move, the current position last. Older positions can never recur.
+ */
 data class ChessBoard(
     val cells: List<List<ChessPiece?>>,
     val playerTurn: PieceColor,
-    val winner : PieceColor? = null
+    val result: GameResult = GameResult.Ongoing,
+    val castlingRights: CastlingRights = CastlingRights.None,
+    val enPassantTarget: Position? = null,
+    val halfmoveClock: Int = 0,
+    val fullmoveNumber: Int = 1,
+    val positionHistory: List<String> = emptyList()
 ) {
+    /** The side that delivered checkmate, or null if the game is not won. */
+    val winner: PieceColor?
+        get() = (result as? GameResult.Checkmate)?.winner
+
+    val isGameOver: Boolean
+        get() = result.isGameOver
+
     fun getPieceAtPosition(position: Position): ChessPiece? = cells[position.row][position.column]
 
     companion object {
@@ -31,7 +53,12 @@ data class ChessBoard(
                     initialPieceAt(row, column)
                 }
             }
-            return ChessBoard(cells, playerTurn = White)
+            val board = ChessBoard(
+                cells = cells,
+                playerTurn = White,
+                castlingRights = CastlingRights.All
+            )
+            return board.copy(positionHistory = listOf(board.positionKey()))
         }
 
         /**
@@ -50,7 +77,6 @@ data class ChessBoard(
                 else -> null
             }
         }
-
 
         /**
          * Creates a major chess piece (rook, knight, bishop, queen, or king) at a given position.

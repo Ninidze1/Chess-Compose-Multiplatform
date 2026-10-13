@@ -9,17 +9,14 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ninidze.chesscomposekmm.presentation.theme.BoardWhite
-import org.jetbrains.compose.resources.ExperimentalResourceApi
+import com.ninidze.chesscomposekmm.presentation.Strings
+import com.ninidze.chesscomposekmm.presentation.theme.LocalBoardColors
+import com.ninidze.chesscomposekmm.resources.Res
+import com.ninidze.chesscomposekmm.resources.ic_restart
 import org.jetbrains.compose.resources.painterResource
 
-@ExperimentalResourceApi
 @Composable
-fun RestartButton(
-    modifier: Modifier = Modifier,
-    isVisible: Boolean = false,
-    onRestartClick: () -> Unit
-) {
+fun RestartButton(modifier: Modifier = Modifier, isVisible: Boolean = false, onRestartClick: () -> Unit) {
     AnimatedVisibility(visible = isVisible) {
         Button(
             modifier = modifier
@@ -27,12 +24,12 @@ fun RestartButton(
                 .aspectRatio(1f),
             onClick = onRestartClick,
             colors = ButtonDefaults.buttonColors(
-                containerColor = BoardWhite
+                containerColor = LocalBoardColors.current.lightSquare
             )
         ) {
             Image(
-                painter = painterResource(res = "drawables/ic_restart.xml"),
-                contentDescription = "Restart"
+                painter = painterResource(Res.drawable.ic_restart),
+                contentDescription = Strings.RESTART
             )
         }
     }

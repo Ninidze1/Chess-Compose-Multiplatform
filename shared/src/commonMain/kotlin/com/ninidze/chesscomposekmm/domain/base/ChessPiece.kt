@@ -11,7 +11,6 @@ import com.ninidze.chesscomposekmm.domain.pieces.Pawn
 import com.ninidze.chesscomposekmm.domain.pieces.Queen
 import com.ninidze.chesscomposekmm.domain.pieces.Rook
 import com.ninidze.chesscomposekmm.util.Constants.UNKNOWN_CHESS_PIECE
-import com.ninidze.chesscomposekmm.util.extensions.isKingChecked
 import com.ninidze.chesscomposekmm.util.extensions.isKingCheckedAfterMove
 import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByAlly
 
@@ -37,37 +36,18 @@ abstract class ChessPiece(
      * @param chessBoard The current state of the chessboard.
      * @return A list of positions to which the chess piece can potentially move.
      */
-    open fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> =
-        moveStrategy.getMoves(this, chessBoard)
-
+    open fun getUnfilteredMoves(chessBoard: ChessBoard): List<Position> = moveStrategy.getMoves(this, chessBoard)
 
     /**
-     * Checks if a given move is valid for this chess piece on a given chessboard.
-     * It checks if the move is in the list of unfiltered moves,
-     * if the target position contains a king, and if the move would put the king in check.
+     * Checks if a given move is legal for this chess piece on a given chessboard:
+     * it must be one of the unfiltered moves, and pass [isLegalTarget].
      *
      * @param chessBoard The current state of the chessboard.
      * @param targetPosition The position to which the piece is trying to move.
      * @return true if the move is valid, false otherwise.
      */
-    open fun isValidMove(chessBoard: ChessBoard, targetPosition: Position): Boolean {
-        if (targetPosition !in getUnfilteredMoves(chessBoard)) {
-            return false
-        }
-        if (chessBoard.getPieceAtPosition(targetPosition)?.type == PieceType.King) {
-            return false
-        }
-        if (chessBoard.isOccupiedByAlly(targetPosition, color)) {
-            return false
-        }
-        if (chessBoard.isKingCheckedAfterMove(this, targetPosition)) {
-            return false
-        }
-        if (chessBoard.isKingChecked(color)) {
-            return !chessBoard.isKingCheckedAfterMove(this, targetPosition)
-        }
-        return true
-    }
+    fun isValidMove(chessBoard: ChessBoard, targetPosition: Position): Boolean =
+        targetPosition in getUnfilteredMoves(chessBoard) && isLegalTarget(chessBoard, targetPosition)
 
     /**
      * Gets the available moves for this chess piece on a given chessboard. It filters out the moves that are not valid.
@@ -75,8 +55,22 @@ abstract class ChessPiece(
      * @param chessBoard The current state of the chessboard.
      * @return A list of valid positions to which the chess piece can move.
      */
-    fun getAvailableMoves(chessBoard: ChessBoard): List<Position> {
-        return getUnfilteredMoves(chessBoard).filter { isValidMove(chessBoard, it) }
+    fun getAvailableMoves(chessBoard: ChessBoard): List<Position> =
+        getUnfilteredMoves(chessBoard).filter { isLegalTarget(chessBoard, it) }
+
+    /**
+     * Filters one of the unfiltered moves: the target must not hold a king or an ally, and
+     * the move must not leave the own king in check. The move is simulated with all its side
+     * effects (castling rook, en-passant capture), so this applies to every move type.
+     */
+    private fun isLegalTarget(chessBoard: ChessBoard, targetPosition: Position): Boolean {
+        if (chessBoard.getPieceAtPosition(targetPosition)?.type == PieceType.King) {
+            return false
+        }
+        if (chessBoard.isOccupiedByAlly(targetPosition, color)) {
+            return false
+        }
+        return !chessBoard.isKingCheckedAfterMove(this, targetPosition)
     }
 
     /**
@@ -87,18 +81,19 @@ abstract class ChessPiece(
      * @param chessBoard The current state of the chessboard.
      * @return A list of positions where the chess piece can potentially capture an opponent's piece.
      */
-    open fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> =
-        getUnfilteredMoves(chessBoard)
+    open fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> = getUnfilteredMoves(chessBoard)
 
     /**
      * Moves the chess piece to a new position on the chessboard.
      * It returns a new instance of the same type of chess piece but at the new position.
      *
      * @param targetPosition The position to which the piece is to be moved.
+     * @param promotion The piece a pawn becomes when it reaches the last rank.
+     * Ignored by every other piece and by pawn moves that do not promote.
      * @return A new instance of the same type of chess piece but at the new position.
      * @throws RuntimeException If the type of the chess piece is unknown.
      */
-    open fun movePieceTo(targetPosition: Position) = when (this) {
+    open fun movePieceTo(targetPosition: Position, promotion: PieceType = PieceType.Queen): ChessPiece = when (this) {
         is Pawn -> Pawn(color, targetPosition)
         is King -> King(color, targetPosition)
         is Knight -> Knight(color, targetPosition)

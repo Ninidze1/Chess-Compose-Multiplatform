@@ -9,13 +9,12 @@ import com.ninidze.chesscomposekmm.domain.model.PieceType.Pawn
 import com.ninidze.chesscomposekmm.domain.model.Position
 import com.ninidze.chesscomposekmm.domain.movement.PawnMoveStrategy
 
-class Pawn(
-    override val color: PieceColor,
-    override val position: Position,
-) : ChessPiece(
-    color, position,
-    moveStrategy = PawnMoveStrategy()
-) {
+class Pawn(override val color: PieceColor, override val position: Position) :
+    ChessPiece(
+        color,
+        position,
+        moveStrategy = PawnMoveStrategy()
+    ) {
     override val type: PieceType = Pawn
 
     override fun getPotentialCaptures(chessBoard: ChessBoard): List<Position> {
@@ -26,12 +25,20 @@ class Pawn(
         ).filter { it.isValidPosition() }
     }
 
-    override fun movePieceTo(targetPosition: Position): ChessPiece {
+    override fun movePieceTo(targetPosition: Position, promotion: PieceType): ChessPiece {
         val pawnReachedEnd =
             (color == White && targetPosition.row == 0) ||
-            (color == PieceColor.Black && targetPosition.row == 7)
+                (color == PieceColor.Black && targetPosition.row == 7)
         if (pawnReachedEnd) {
-            return Queen(color, targetPosition)
+            // A pawn can only become a queen, rook, bishop or knight; anything else is a queen.
+            return when (promotion) {
+                PieceType.Rook -> Rook(color, targetPosition)
+                PieceType.Bishop -> Bishop(color, targetPosition)
+                PieceType.Knight -> Knight(color, targetPosition)
+                PieceType.Queen,
+                PieceType.King,
+                PieceType.Pawn -> Queen(color, targetPosition)
+            }
         }
         return Pawn(color, targetPosition)
     }

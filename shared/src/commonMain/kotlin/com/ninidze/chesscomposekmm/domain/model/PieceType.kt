@@ -6,13 +6,10 @@ enum class PieceType {
     Rook,
     Bishop,
     Knight,
-    Pawn,
+    Pawn
 }
 
 enum class PieceColor {
     White,
     Black
 }
-
-
-

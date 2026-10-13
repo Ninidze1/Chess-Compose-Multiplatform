@@ -3,12 +3,24 @@ package com.ninidze.chesscomposekmm.util
 object Constants {
     const val BOARD_SIZE = 8
     const val ANIMATION_DURATION_MS = 300L
+    const val AI_MOVE_DELAY_MS = 1000L
+    const val AI_ANIMATION_TIMEOUT_MS = ANIMATION_DURATION_MS * 5
 
     const val INVALID_MOVE_MESSAGE = "Invalid move"
     const val PIECE_NOT_FOUND = "Piece not found"
+    const val NOT_PLAYERS_TURN = "It is not this piece's turn to move"
+    const val GAME_ALREADY_FINISHED = "The game has already finished"
     const val UNKNOWN_CHESS_PIECE = "Unknown chess piece type"
     const val KING_NOT_FOUND = "King  not found on the board"
     const val ERROR_LOADING_BOARD = "Error loading board: "
+    const val ERROR_SAVING_BOARD = "Error saving board: "
+    const val ERROR_DECODING_BOARD = "Discarding unreadable saved board: "
+    const val INVALID_BOARD_SIZE = "the board is not 8x8"
+    const val ERROR_CALCULATING_AI_MOVE = "Error calculating AI move: "
+    const val AI_MOVE_REJECTED = "AI move rejected, using a fallback move instead of: "
+    const val ENGINE_SEARCH_FAILED = "Engine search failed: "
+    const val ENGINE_NO_MOVE = "Engine returned no usable move: "
+    const val UNCAUGHT_VIEW_MODEL_ERROR = "Unexpected error in ChessViewModel: "
 
     const val CHESS_BOARD_KEY = "chess_board"
 }

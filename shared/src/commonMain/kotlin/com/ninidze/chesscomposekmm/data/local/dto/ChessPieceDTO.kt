@@ -12,20 +12,14 @@ import com.ninidze.chesscomposekmm.domain.pieces.Rook
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ChessPieceDTO(
-    val color: PieceColor,
-    val position: PositionDTO,
-    val type: PieceType
-) {
-    fun toDomainModel(): ChessPiece {
-        return when (type) {
-            PieceType.Pawn -> Pawn(color, position.toDomainModel())
-            PieceType.King -> King(color, position.toDomainModel())
-            PieceType.Queen -> Queen(color, position.toDomainModel())
-            PieceType.Rook -> Rook(color, position.toDomainModel())
-            PieceType.Bishop -> Bishop(color, position.toDomainModel())
-            PieceType.Knight -> Knight(color, position.toDomainModel())
-        }
+data class ChessPieceDTO(val color: PieceColor, val position: PositionDTO, val type: PieceType) {
+    fun toDomainModel(): ChessPiece = when (type) {
+        PieceType.Pawn -> Pawn(color, position.toDomainModel())
+        PieceType.King -> King(color, position.toDomainModel())
+        PieceType.Queen -> Queen(color, position.toDomainModel())
+        PieceType.Rook -> Rook(color, position.toDomainModel())
+        PieceType.Bishop -> Bishop(color, position.toDomainModel())
+        PieceType.Knight -> Knight(color, position.toDomainModel())
     }
 
     companion object {

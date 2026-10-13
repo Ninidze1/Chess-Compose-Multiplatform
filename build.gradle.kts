@@ -1,21 +1,13 @@
 plugins {
-    kotlin("multiplatform").apply(false)
-    id("com.android.application").apply(false)
-    id("com.android.library").apply(false)
-    id("org.jetbrains.compose").apply(false)
-}
-
-tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
-}
-
-buildscript {
-    dependencies {
-        classpath("org.jetbrains.kotlinx:atomicfu-gradle-plugin:0.17.3")
-        classpath("org.jetbrains.kotlin:kotlin-serialization:1.8.20")
-    }
-}
-
-allprojects {
-    apply(plugin = "kotlinx-atomicfu")
+    // Declared once here so every module shares one classloader and one version of each
+    // plugin; the modules apply them without a version.
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.cocoapods) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.compose.multiplatform) apply false
+    alias(libs.plugins.ktlint) apply false
 }

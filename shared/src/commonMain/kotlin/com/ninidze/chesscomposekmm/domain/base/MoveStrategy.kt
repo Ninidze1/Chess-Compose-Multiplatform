@@ -13,9 +13,7 @@ import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByOpponent
 interface MoveStrategy {
     fun getMoves(piece: ChessPiece, chessBoard: ChessBoard): List<Position>
 
-    operator fun plus(other: MoveStrategy): MoveStrategy {
-        return CompositeMoveStrategy(this, other)
-    }
+    operator fun plus(other: MoveStrategy): MoveStrategy = CompositeMoveStrategy(this, other)
 }
 
 /**

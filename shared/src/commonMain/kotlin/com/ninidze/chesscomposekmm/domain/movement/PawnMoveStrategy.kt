@@ -5,6 +5,7 @@ import com.ninidze.chesscomposekmm.domain.base.MoveStrategy
 import com.ninidze.chesscomposekmm.domain.model.ChessBoard
 import com.ninidze.chesscomposekmm.domain.model.PieceColor.White
 import com.ninidze.chesscomposekmm.domain.model.Position
+import com.ninidze.chesscomposekmm.util.extensions.isEnPassantCapture
 import com.ninidze.chesscomposekmm.util.extensions.isOccupied
 import com.ninidze.chesscomposekmm.util.extensions.isOccupiedByOpponent
 
@@ -40,6 +41,11 @@ class PawnMoveStrategy : MoveStrategy {
         if (forwardRight.isValidPosition() && chessBoard.isOccupiedByOpponent(forwardRight, color)) {
             possibleMoves.add(forwardRight)
         }
+
+        // En passant: the diagonal target is empty, the captured pawn stands beside this one.
+        listOf(forwardLeft, forwardRight)
+            .filter { chessBoard.isEnPassantCapture(piece, it) }
+            .forEach { possibleMoves.add(it) }
 
         return possibleMoves
     }

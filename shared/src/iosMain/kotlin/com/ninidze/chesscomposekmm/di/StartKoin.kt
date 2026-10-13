@@ -1,15 +1,17 @@
 package com.ninidze.chesscomposekmm.di
 
-import com.russhwolf.settings.ExperimentalSettingsApi
 import org.koin.core.context.startKoin
 
-@ExperimentalSettingsApi
-fun initKoin(){
+fun initKoin() {
     startKoin {
         modules(
-            viewModel, useCaseModule,
-            platformUtilModule, chessEngineModule,
-            localDataStoreModule, repositoryModule
+            chessViewModelModule,
+            useCaseModule,
+            platformUtilModule,
+            soundPlayerModule,
+            chessEngineModule,
+            localDataStoreModule,
+            repositoryModule
         )
     }
 }
